@@ -42,3 +42,8 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# SQLite local database (per-env, never commit)
+*.db
+*.db-journal
+/uploads
