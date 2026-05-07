@@ -59,3 +59,39 @@ export async function createProject(
 
   redirect(`/projects/${project.id}`);
 }
+
+export async function getMyProjects() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return [];
+  }
+
+  const isOwner = session.user.role === "OWNER";
+
+  return prisma.project.findMany({
+    where: {
+      active: true,
+      ...(isOwner
+        ? {}
+        : {
+            allocations: {
+              some: {
+                shares: {
+                  some: {
+                    userId: session.user.id,
+                  },
+                },
+              },
+            },
+          }),
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}

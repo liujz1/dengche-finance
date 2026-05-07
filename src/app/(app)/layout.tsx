@@ -6,6 +6,7 @@ import { auth, signOut } from "@/auth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -123,6 +124,7 @@ export default async function AppLayout({
       </header>
 
       <main className="container mx-auto px-4 py-6">{children}</main>
+      <Toaster richColors />
     </div>
   );
 }
