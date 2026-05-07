@@ -1,12 +1,24 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { UserRole } from "@/generated/prisma/enums";
+import { EntryStatus, EntryType, UserRole } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
+
+type AllocationShareInput = {
+  userId: string;
+  basisPoints: number;
+};
+
+type AllocationShareSnapshot = AllocationShareInput & {
+  id: string;
+  planId: string;
+};
 
 const allocationShareSchema = z.object({
   userId: z.string().min(1, "用户不存在"),
@@ -47,8 +59,38 @@ const allocationPlanSchema = z
   );
 
 export type CreateAllocationPlanState = {
+  success?: boolean;
   error?: string;
 };
+
+function createCuidLikeId() {
+  return `c${randomBytes(12).toString("base64url").toLowerCase()}`;
+}
+
+function allocationPlanSnapshot(params: {
+  id: string;
+  projectId: string;
+  effectiveFrom: Date;
+  note: string | null;
+  createdById: string;
+  createdAt: Date;
+  shares: AllocationShareSnapshot[];
+}) {
+  return {
+    id: params.id,
+    projectId: params.projectId,
+    effectiveFrom: params.effectiveFrom,
+    note: params.note,
+    createdById: params.createdById,
+    createdAt: params.createdAt,
+    shares: params.shares.map((share) => ({
+      id: share.id,
+      planId: share.planId,
+      userId: share.userId,
+      basisPoints: share.basisPoints,
+    })),
+  };
+}
 
 export async function createAllocationPlanAction(
   _prevState: CreateAllocationPlanState,
@@ -76,7 +118,10 @@ export async function createAllocationPlanAction(
 
   if (!parsed.success) {
     return {
-      error: parsed.error.issues[0]?.message || "请检查分配方案",
+      error:
+        parsed.error.issues[0]?.message === "分配比例合计必须等于 100%"
+          ? "合计必须为 100%"
+          : parsed.error.issues[0]?.message || "请检查分配方案",
     };
   }
 
@@ -107,26 +152,139 @@ export async function createAllocationPlanAction(
   }
 
   if (userCount !== parsed.data.shares.length) {
-    return { error: "分配人不存在" };
+    return { error: "分配人不存在或角色不允许" };
   }
 
-  await prisma.allocationPlan.create({
-    data: {
-      projectId: parsed.data.projectId,
-      effectiveFrom: parsed.data.effectiveFrom,
-      note: parsed.data.note,
-      createdById: session.user.id,
-      shares: {
-        create: parsed.data.shares.map((share) => ({
-          userId: share.userId,
-          basisPoints: share.basisPoints,
-        })),
-      },
-    },
+  const now = new Date();
+  const planId = createCuidLikeId();
+  const planSnapshot = allocationPlanSnapshot({
+    id: planId,
+    projectId: parsed.data.projectId,
+    effectiveFrom: parsed.data.effectiveFrom,
+    note: parsed.data.note,
+    createdById: session.user.id,
+    createdAt: now,
+    shares: parsed.data.shares.map((share) => ({
+      id: createCuidLikeId(),
+      planId,
+      userId: share.userId,
+      basisPoints: share.basisPoints,
+    })),
   });
+
+  try {
+    await prisma.$transaction([
+      prisma.allocationPlan.create({
+        data: {
+          id: planSnapshot.id,
+          projectId: planSnapshot.projectId,
+          effectiveFrom: planSnapshot.effectiveFrom,
+          note: planSnapshot.note,
+          createdById: planSnapshot.createdById,
+          createdAt: planSnapshot.createdAt,
+          shares: {
+            create: planSnapshot.shares.map((share) => ({
+              id: share.id,
+              userId: share.userId,
+              basisPoints: share.basisPoints,
+            })),
+          },
+        },
+      }),
+      prisma.ledgerEvent.create({
+        data: {
+          eventType: "ALLOCATION_PLAN_CREATED",
+          payloadJson: JSON.stringify(planSnapshot),
+          actorId: session.user.id,
+        },
+      }),
+    ]);
+  } catch (error) {
+    console.error("create allocation plan failed", error);
+    return { error: "分配方案创建失败" };
+  }
 
   revalidatePath("/allocations");
   revalidatePath(`/projects/${parsed.data.projectId}`);
   redirect("/allocations");
 }
 
+export async function getCurrentAllocation(projectId: string) {
+  return prisma.allocationPlan.findFirst({
+    where: {
+      projectId,
+      effectiveFrom: {
+        lte: new Date(),
+      },
+    },
+    include: {
+      shares: {
+        include: {
+          user: true,
+        },
+        orderBy: {
+          user: {
+            createdAt: "asc",
+          },
+        },
+      },
+    },
+    orderBy: [
+      {
+        effectiveFrom: "desc",
+      },
+      {
+        createdAt: "desc",
+      },
+    ],
+  });
+}
+
+export async function calculatePartnerEarnings(
+  projectId: string,
+  userId: string
+) {
+  const [incomeSummary, expenseSummary, currentAllocation] = await Promise.all([
+    prisma.entry.aggregate({
+      where: {
+        projectId,
+        status: EntryStatus.APPROVED,
+        type: EntryType.INCOME,
+      },
+      _sum: {
+        amountCents: true,
+      },
+    }),
+    prisma.entry.aggregate({
+      where: {
+        projectId,
+        status: EntryStatus.APPROVED,
+        type: {
+          in: [EntryType.EXPENSE, EntryType.PROXY_PAY],
+        },
+      },
+      _sum: {
+        amountCents: true,
+      },
+    }),
+    getCurrentAllocation(projectId),
+  ]);
+
+  if (!currentAllocation) {
+    return 0;
+  }
+
+  const userShare = currentAllocation.shares.find(
+    (share) => share.userId === userId
+  );
+
+  if (!userShare) {
+    return 0;
+  }
+
+  const incomeCents = incomeSummary._sum.amountCents ?? 0;
+  const expenseCents = expenseSummary._sum.amountCents ?? 0;
+  const netProfitCents = incomeCents - expenseCents;
+
+  return Math.round((netProfitCents * userShare.basisPoints) / 10000);
+}
