@@ -1,0 +1,140 @@
+// finance ledger — DB schema
+// 信任三锚直接落到 schema：强制证据 / 同步审核 / immutable log
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Prisma 7: URL 从 prisma.config.ts 的 datasource.url 读取（process.env.DATABASE_URL）
+}
+
+enum UserRole {
+  OWNER
+  PARTNER
+}
+
+enum EntryType {
+  INCOME
+  EXPENSE
+  TRANSFER
+  PROXY_RECEIVE
+  PROXY_PAY
+}
+
+enum EntryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  VOIDED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         UserRole
+  createdAt    DateTime @default(now())
+
+  createdEntries  Entry[]          @relation("CreatedBy")
+  approvedEntries Entry[]          @relation("ApprovedBy")
+  shares          PartnerShare[]
+  ledgerEvents    LedgerEvent[]
+  createdPlans    AllocationPlan[]
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  entries     Entry[]
+  allocations AllocationPlan[]
+}
+
+model Entry {
+  id             String      @id @default(cuid())
+  projectId      String
+  project        Project     @relation(fields: [projectId], references: [id])
+  type           EntryType
+  amountCents    Int                                   // cents 避免浮点误差
+  description    String
+  occurredAt     DateTime
+  status         EntryStatus @default(PENDING)
+  createdById    String
+  createdBy      User        @relation("CreatedBy", fields: [createdById], references: [id])
+  approvedById   String?
+  approvedBy     User?       @relation("ApprovedBy", fields: [approvedById], references: [id])
+  approvedAt     DateTime?
+  rejectedReason String?
+  reversedFromId String?     @unique                   // 反向冲销关联
+  reversedFrom   Entry?      @relation("Reversal", fields: [reversedFromId], references: [id])
+  reversal       Entry?      @relation("Reversal")
+  createdAt      DateTime    @default(now())
+
+  evidences Evidence[]
+  events    LedgerEvent[]
+
+  @@index([projectId, status, occurredAt])
+  @@index([createdById, status])
+}
+
+model Evidence {
+  id         String   @id @default(cuid())
+  entryId    String
+  entry      Entry    @relation(fields: [entryId], references: [id])
+  r2Key      String                                    // R2 object key
+  mimeType   String
+  sizeBytes  Int
+  uploadedAt DateTime @default(now())
+
+  @@index([entryId])
+}
+
+// 老板拍的分配方案——只 OWNER 能创建（Server Action 层校验）
+model AllocationPlan {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id])
+  effectiveFrom DateTime
+  note          String?
+  createdById   String
+  createdBy     User     @relation(fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+
+  shares PartnerShare[]
+
+  @@index([projectId, effectiveFrom])
+}
+
+model PartnerShare {
+  id          String         @id @default(cuid())
+  planId      String
+  plan        AllocationPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User           @relation(fields: [userId], references: [id])
+  basisPoints Int                                      // 万分比，10000 = 100%
+
+  @@unique([planId, userId])
+}
+
+// Append-only 事件流：信任三锚之 immutable log
+// 任何对 Entry 的状态变更（创建/批准/驳回/冲销）都在这里留痕
+model LedgerEvent {
+  id          String   @id @default(cuid())
+  entryId     String?
+  entry       Entry?   @relation(fields: [entryId], references: [id])
+  eventType   String                                   // ENTRY_CREATED | ENTRY_APPROVED | ENTRY_REJECTED | ENTRY_REVERSED
+  payloadJson Json                                     // 完整快照
+  actorId     String
+  actor       User     @relation(fields: [actorId], references: [id])
+  occurredAt  DateTime @default(now())
+
+  @@index([entryId, occurredAt])
+  @@index([eventType, occurredAt])
+}
