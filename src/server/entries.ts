@@ -1,6 +1,7 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { randomBytes } from "node:crypto";
+
 import { z } from "zod";
 
 import { auth } from "@/auth";
@@ -30,38 +31,70 @@ const entryFormSchema = z.object({
 });
 
 export type CreateEntryState = {
+  success?: boolean;
+  entryId?: string;
   error?: string;
+};
+
+type SessionUser = {
+  id: string;
+  role: string;
 };
 
 function isFile(value: FormDataEntryValue | null): value is File {
   return value instanceof File;
 }
 
-async function canUseProject(projectId: string, userId: string, role: string) {
-  const project = await prisma.project.findFirst({
-    where: {
-      id: projectId,
-      active: true,
-      ...(role === "OWNER"
-        ? {}
-        : {
-            allocations: {
-              some: {
-                shares: {
-                  some: {
-                    userId,
-                  },
+function createCuidLikeId() {
+  return `c${randomBytes(12).toString("base64url").toLowerCase()}`;
+}
+
+function getProjectAccessWhere(projectId: string, user: SessionUser) {
+  return {
+    id: projectId,
+    active: true,
+    ...(user.role === "OWNER"
+      ? {}
+      : {
+          allocations: {
+            some: {
+              shares: {
+                some: {
+                  userId: user.id,
                 },
               },
             },
-          }),
-    },
+          },
+        }),
+  };
+}
+
+function getProjectListWhere(user: SessionUser) {
+  return {
+    active: true,
+    ...(user.role === "OWNER"
+      ? {}
+      : {
+          allocations: {
+            some: {
+              shares: {
+                some: {
+                  userId: user.id,
+                },
+              },
+            },
+          },
+        }),
+  };
+}
+
+async function findAccessibleProject(projectId: string, user: SessionUser) {
+  return prisma.project.findFirst({
+    where: getProjectAccessWhere(projectId, user),
     select: {
       id: true,
     },
   });
-
-  return Boolean(project);
 }
 
 export async function createEntryAction(
@@ -88,20 +121,33 @@ export async function createEntryAction(
     };
   }
 
+  const project = await prisma.project.findUnique({
+    where: {
+      id: parsed.data.projectId,
+    },
+    select: {
+      id: true,
+      active: true,
+    },
+  });
+
+  if (!project?.active) {
+    return { error: "项目不存在" };
+  }
+
+  const hasProjectAccess = await findAccessibleProject(
+    parsed.data.projectId,
+    session.user
+  );
+
+  if (!hasProjectAccess) {
+    return { error: "无权访问此项目" };
+  }
+
   const evidence = formData.get("evidence");
 
   if (!isFile(evidence) || evidence.size === 0) {
     return { error: "请上传一张凭证图片" };
-  }
-
-  const hasProjectAccess = await canUseProject(
-    parsed.data.projectId,
-    session.user.id,
-    session.user.role
-  );
-
-  if (!hasProjectAccess) {
-    return { error: "你不能给这个项目录入流水" };
   }
 
   let savedEvidence: Awaited<ReturnType<typeof saveUploadedFile>>;
@@ -109,45 +155,120 @@ export async function createEntryAction(
   try {
     savedEvidence = await saveUploadedFile(evidence, "evidences");
   } catch (error) {
+    const message = error instanceof Error ? error.message : "凭证上传失败";
+
     return {
-      error: error instanceof Error ? error.message : "凭证上传失败",
+      error: message.includes("5MB") ? "图片必须 < 5MB" : message,
     };
   }
 
-  const entry = await prisma.entry.create({
-    data: {
-      projectId: parsed.data.projectId,
-      type: parsed.data.type,
-      amountCents: parsed.data.amountYuan,
-      description: parsed.data.description,
-      occurredAt: parsed.data.occurredAt,
-      status: EntryStatus.PENDING,
-      createdById: session.user.id,
-      evidences: {
-        create: {
+  const now = new Date();
+  const entrySnapshot = {
+    id: createCuidLikeId(),
+    projectId: parsed.data.projectId,
+    type: parsed.data.type,
+    amountCents: parsed.data.amountYuan,
+    description: parsed.data.description,
+    occurredAt: parsed.data.occurredAt,
+    status: EntryStatus.PENDING,
+    createdById: session.user.id,
+    approvedById: null,
+    approvedAt: null,
+    rejectedReason: null,
+    reversedFromId: null,
+    createdAt: now,
+  };
+
+  try {
+    await prisma.$transaction([
+      prisma.entry.create({
+        data: entrySnapshot,
+      }),
+      prisma.evidence.create({
+        data: {
+          entryId: entrySnapshot.id,
           r2Key: savedEvidence.key,
           mimeType: savedEvidence.mime,
           sizeBytes: savedEvidence.size,
         },
-      },
-      events: {
-        create: {
+      }),
+      prisma.ledgerEvent.create({
+        data: {
+          entryId: entrySnapshot.id,
           eventType: "ENTRY_CREATED",
-          payloadJson: JSON.stringify({
-            projectId: parsed.data.projectId,
-            type: parsed.data.type,
-            amountCents: parsed.data.amountYuan,
-            description: parsed.data.description,
-            evidenceKey: savedEvidence.key,
-          }),
+          payloadJson: JSON.stringify(entrySnapshot),
           actorId: session.user.id,
         },
-      },
-    },
+      }),
+    ]);
+  } catch (error) {
+    console.error("create entry failed", error);
+    return { error: "流水创建失败" };
+  }
+
+  return {
+    success: true,
+    entryId: entrySnapshot.id,
+  };
+}
+
+export async function getMyProjects() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return [];
+  }
+
+  return prisma.project.findMany({
+    where: getProjectListWhere(session.user),
     select: {
-      projectId: true,
+      id: true,
+      name: true,
+    },
+    orderBy: {
+      createdAt: "desc",
     },
   });
+}
 
-  redirect(`/projects/${entry.projectId}`);
+export async function getEntryDetail(entryId: string) {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return null;
+  }
+
+  return prisma.entry.findFirst({
+    where: {
+      id: entryId,
+      ...(session.user.role === "OWNER"
+        ? {}
+        : {
+            OR: [
+              {
+                createdById: session.user.id,
+              },
+              {
+                project: {
+                  allocations: {
+                    some: {
+                      shares: {
+                        some: {
+                          userId: session.user.id,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          }),
+    },
+    include: {
+      evidences: true,
+      createdBy: true,
+      project: true,
+      events: true,
+    },
+  });
 }
