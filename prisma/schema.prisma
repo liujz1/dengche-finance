@@ -7,8 +7,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  // Prisma 7: URL 从 prisma.config.ts 的 datasource.url 读取（process.env.DATABASE_URL）
+  provider = "sqlite"
+  // Prisma 7: URL 从 prisma.config.ts 的 datasource.url 读取（默认 file:./dev.db）
+  // SQLite 仿照 new-api 风格——零外部依赖，开箱即跑
 }
 
 enum UserRole {
@@ -130,7 +131,7 @@ model LedgerEvent {
   entryId     String?
   entry       Entry?   @relation(fields: [entryId], references: [id])
   eventType   String                                   // ENTRY_CREATED | ENTRY_APPROVED | ENTRY_REJECTED | ENTRY_REVERSED
-  payloadJson Json                                     // 完整快照
+  payloadJson String                                   // SQLite 没原生 Json，用 String 存 JSON.stringify 结果
   actorId     String
   actor       User     @relation(fields: [actorId], references: [id])
   occurredAt  DateTime @default(now())
