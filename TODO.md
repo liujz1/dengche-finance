@@ -65,6 +65,39 @@
   写 scripts/backup.sh: cp dev.db backups/dev-$(date +%Y%m%d-%H%M).db + tar uploads/
   README 加 cron job 例子。
 
+## P0 — 老板反馈追加 (v0.7 上线后实战发现)
+
+- [ ] **T-040 用户管理 (admin add/edit partner)**  *(2026-05-08 老板反馈: 不能加合伙人 + 不能改名字)*
+
+  **背景**: V0.7 PRD 写"老板手动开账号给合伙人", seed 已建 3 个用户但**没有 admin 界面**让老板加新人 / 改名 / 改密。生意扩张要拉新合伙人时被卡。
+
+  **产出文件**:
+  1. `src/app/(app)/admin/users/page.tsx` — Server Component, OWNER only
+     - 列表所有 user (table: 邮箱 / 姓名 / 角色 Badge / 创建时间 / 操作)
+     - 顶部"+ 添加合伙人"按钮 → /admin/users/new
+     - 每行"编辑"按钮 → /admin/users/[id]/edit
+  2. `src/app/(app)/admin/users/new/page.tsx` — 添加合伙人 form
+     - 字段: 邮箱 (zod email) / 姓名 (1-50 字) / 初始密码 (zod min 6)
+     - 角色固定 PARTNER (不让 admin 创建 OWNER, 多 OWNER 风险)
+     - 提交 → addPartnerAction
+  3. `src/app/(app)/admin/users/[id]/edit/page.tsx` — 编辑用户 form
+     - 字段: 姓名 (可改) / 邮箱 (readonly, 邮箱是唯一标识) / 重置密码 (可选, 不填就不改)
+     - 不能改 role (避免老板误操作把自己改成 PARTNER)
+     - 提交 → editUserAction
+  4. `src/server/admin-users.ts` — Server Actions
+     - `addPartnerAction(prevState, formData)`: OWNER only, zod parse, bcrypt hash 密码, prisma.user.create role=PARTNER
+     - `editUserAction(prevState, formData)`: OWNER only, zod parse, prisma.user.update; 如有新密码则 bcrypt hash + 更新 passwordHash
+  5. **app layout nav 加链接** (条件渲染 OWNER 才显示): `<Link href="/admin/users">用户</Link>`
+
+  **限制 (协议红线 + 安全)**:
+  - 不动: prisma/schema.prisma (User 表字段已够) / src/auth.ts (auth flow 不变) / src/middleware.ts
+  - 不能让 admin 创建第二个 OWNER (业务约束: 单 OWNER)
+  - 不能删用户 (历史 entry 关联, 删了破坏 immutable log) — 显示"停用"按钮代替 (User 加 active 字段? 等等, schema 没这字段, 不要改 schema, 这个先不做)
+
+  **测试**: e2e 跑通: boss 登录 → /admin/users → 加一个 partner-c → 用 partner-c 登录 OK → boss 改 partner-c 名字 → partner-c 重新登 看到新名字
+  
+  **e2e tsc/build 验证**: npx tsc --noEmit 0 / pnpm build 12+1 routes 全过
+
 ## P3 — 部署 + 运维
 
 - [ ] **T-030 验证 Dockerfile 真能 build + 跑**
