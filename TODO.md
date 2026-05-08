@@ -15,7 +15,7 @@
   每个页面截 server log 里的 error/warning, 全部修干净 (0 server-side error)。
   完成标志: 三个账号扫一遍全 200, 无 server log error。
 
-- [ ] **T-002 录入新流水 e2e**
+- [!] **T-002 录入新流水 e2e**
   用 partner-a 登录 → /entries/new → 填项目=image2, 类型=支出, 金额=88.50, 描述="测试一笔", 时间=今天, 上传任一图片 → 提交。
   期望: redirect 到 /projects/[image2-id], Toast 提示"已提交,等待审核", 该笔在流水列表里 PENDING 状态显示。
   跑通 + 修任何 bug。
