@@ -85,20 +85,34 @@ P3 不阻塞 ALL_DONE (运维优化, 老板回来再说)。
 
 ---
 
-## Codex 工作约束 (必读)
+## Codex 工作约束 (必读 - v2.1)
 
-- **每次循环开始**: `git pull origin main` 拿最新 TODO.md
+- **每次循环开始**: `git pull origin main` 拿最新 TODO.md (dengche 已 push)
 - **挑选 task**: 从上往下, 选第一个 `[ ]`
-- **进行中标记**: `[ ]` → `[!]` 立即 commit `chore: claim T-XXX` (避免 dengche 看不到 claim)
-- **做完标记**: `[!]` → `[x]` (`<commit hash>`) 在 TODO.md
+- **进行中标记**: `[ ]` → `[!]` 立即 commit `chore: claim T-XXX` **(只 commit, 不 push)**
+- **做完标记**: `[!]` → `[x]` (`<commit hash>`) 在 TODO.md, **只 commit, 不 push**
 - **测试要求**: 每个 task 完成必须 `npx tsc --noEmit` + `pnpm build` 全绿
 - **验收要求**: e2e 类 task 必须实际跑 dev server + curl 验证
-- **commit 规范**: `feat: T-XXX <一句话>` / `fix: T-XXX <一句话>`
+- **commit 规范**: `feat: T-XXX <一句话>` / `fix: T-XXX <一句话>` (本地 commit 即可)
 - **冲突处理**: pull 时如果 TODO.md 有冲突 → 接受远程版本 (dengche 的最新规划)
 - **卡死处理**: 单个 task 1 小时还没完成 → 标 `[?]` + 注释原因, 跳到下一个
 - **不要碰**: prisma/schema.prisma / .gitignore / src/auth.ts / src/middleware.ts / src/lib/db.ts (除非 dengche 明确加 task)
 - **dev 端口**: 用 PORT=3002 跑 (避开老板可能开的 3000)
 - **不要装新依赖** 除非 task 明确写
+
+### ⚠️ v2.1 关键变更: Codex **只 commit 不 push**
+
+- 不再 `git push origin main` — 那个会被 OpenAI 503 / Codex 沙箱代理隔离卡死
+- 只在本地 commit, dengche 每 30 min 帮你 push 上 GitHub
+- 你的 commits 不会丢 — 本地 git log 都在
+- 如果你已经习惯性 push 了被拒, **不要紧张, 不要重试不要 reset, 直接接着干下一步**
+- dengche 下次激活会 push 你所有 ahead commits
+
+### dev server 必须 kill 干净 (重要 - 内存防爆):
+  - 每次启 dev server 用模式: `pnpm dev > /tmp/codex-dev.log 2>&1 & DEV_PID=$!`
+  - 测试完立刻 `kill -9 $DEV_PID; sleep 1; pkill -9 -f "next-server"` (确保 Turbopack child process 也死)
+  - 单 task 内不要重复启停 dev > 5 次, 累积测试到一次启动里做完
+  - 任何时刻 `ps aux | grep next-server | grep -v grep | wc -l` 都应该 ≤ 1
 - **dev server 必须 kill 干净** (重要 - 内存防爆):
   - 每次启 dev server 用模式: `pnpm dev > /tmp/codex-dev.log 2>&1 & DEV_PID=$!`
   - 测试完立刻 `kill -9 $DEV_PID; sleep 1; pkill -9 -f "next-server"` (确保 Turbopack child process 也死)
