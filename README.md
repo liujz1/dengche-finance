@@ -35,6 +35,8 @@ dengche-finance ledger 是一个内部项目级损益账本，用来让老板和
 git clone https://github.com/liujz1/dengche-finance.git
 cd dengche-finance
 pnpm install
+# pnpm install 会自动跑 prisma generate (postinstall hook)
+# 生成 src/generated/prisma/ 客户端代码
 ```
 
 ### 2. 准备环境变量
