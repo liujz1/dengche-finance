@@ -9,7 +9,7 @@
 
 ## P0 — 基础打通 (老板能 click 走完所有页面)
 
-- [!] **T-001 全站 smoke test 找 runtime error**  *(2026-05-08 reset by dengche: Codex 桌面版被卡死中断, 重启后重新认领 + 严格遵守新加的 dev-kill 纪律)*
+- [ ] **T-001 全站 smoke test 找 runtime error**  *(2026-05-08 reset by dengche: Codex 桌面版被卡死中断, 重启后重新认领 + 严格遵守新加的 dev-kill 纪律)*
   跑 `pnpm dev`, 用 boss/partner-a/partner-b 三个账号分别登录, 依次点击:
   /login → /projects → /projects/[第一个项目id] → /projects/new (boss) → /entries/new → /approvals (boss) → /allocations (boss) → /allocations/new (boss) → /me (partner-a)
   每个页面截 server log 里的 error/warning, 全部修干净 (0 server-side error)。
