@@ -1,35 +1,16 @@
-import NextAuth, { type DefaultSession } from "next-auth";
+// Full auth setup (Node runtime — server actions / API routes / server components)
+// import prisma + bcryptjs OK 因为这些都在 Node 跑.
+// middleware **不** 用这个文件 — 用 auth.config.ts (edge-safe).
+
+import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 
 import { prisma } from "@/lib/db";
-import type { UserRole } from "@/generated/prisma/enums";
-
-type LedgerToken = {
-  id?: string;
-  role?: UserRole;
-};
-
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      role: UserRole;
-    } & DefaultSession["user"];
-  }
-
-  interface User {
-    role: UserRole;
-  }
-}
+import authConfig from "@/auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  },
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -80,26 +61,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    jwt({ token, user }) {
-      const ledgerToken = token as LedgerToken;
-
-      if (user) {
-        ledgerToken.id = user.id;
-        ledgerToken.role = user.role;
-      }
-
-      return token;
-    },
-    session({ session, token }) {
-      const ledgerToken = token as LedgerToken;
-
-      if (session.user && token.sub && ledgerToken.role) {
-        session.user.id = token.sub;
-        session.user.role = ledgerToken.role;
-      }
-
-      return session;
-    },
-  },
 });
