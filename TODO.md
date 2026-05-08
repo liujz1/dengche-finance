@@ -99,6 +99,11 @@ P3 不阻塞 ALL_DONE (运维优化, 老板回来再说)。
 - **不要碰**: prisma/schema.prisma / .gitignore / src/auth.ts / src/middleware.ts / src/lib/db.ts (除非 dengche 明确加 task)
 - **dev 端口**: 用 PORT=3002 跑 (避开老板可能开的 3000)
 - **不要装新依赖** 除非 task 明确写
+- **dev server 必须 kill 干净** (重要 - 内存防爆):
+  - 每次启 dev server 用模式: `pnpm dev > /tmp/codex-dev.log 2>&1 & DEV_PID=$!`
+  - 测试完立刻 `kill -9 $DEV_PID; sleep 1; pkill -9 -f "next-server"` (确保 Turbopack child process 也死)
+  - 单 task 内不要重复启停 dev > 5 次, 累积测试到一次启动里做完
+  - 任何时刻 `ps aux | grep next-server | grep -v grep | wc -l` 都应该 ≤ 1
 
 ## Dengche 工作约束 (自我提醒)
 
