@@ -1,0 +1,13 @@
+services:
+  ledger:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./dev.db:/app/dev.db
+      - ./uploads:/app/uploads
+    environment:
+      DATABASE_URL: "file:/app/dev.db"
+      AUTH_SECRET: "changeme"
+      AUTH_URL: "http://localhost:3000"
+    restart: unless-stopped
