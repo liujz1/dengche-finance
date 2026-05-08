@@ -108,16 +108,12 @@ P3 不阻塞 ALL_DONE (运维优化, 老板回来再说)。
 - 如果你已经习惯性 push 了被拒, **不要紧张, 不要重试不要 reset, 直接接着干下一步**
 - dengche 下次激活会 push 你所有 ahead commits
 
-### dev server 必须 kill 干净 (重要 - 内存防爆):
-  - 每次启 dev server 用模式: `pnpm dev > /tmp/codex-dev.log 2>&1 & DEV_PID=$!`
-  - 测试完立刻 `kill -9 $DEV_PID; sleep 1; pkill -9 -f "next-server"` (确保 Turbopack child process 也死)
-  - 单 task 内不要重复启停 dev > 5 次, 累积测试到一次启动里做完
-  - 任何时刻 `ps aux | grep next-server | grep -v grep | wc -l` 都应该 ≤ 1
-- **dev server 必须 kill 干净** (重要 - 内存防爆):
-  - 每次启 dev server 用模式: `pnpm dev > /tmp/codex-dev.log 2>&1 & DEV_PID=$!`
-  - 测试完立刻 `kill -9 $DEV_PID; sleep 1; pkill -9 -f "next-server"` (确保 Turbopack child process 也死)
-  - 单 task 内不要重复启停 dev > 5 次, 累积测试到一次启动里做完
-  - 任何时刻 `ps aux | grep next-server | grep -v grep | wc -l` 都应该 ≤ 1
+### dev server 必须 kill 干净 (重要 - 内存防爆)
+
+- 每次启 dev server 用模式: `pnpm dev > /tmp/codex-dev.log 2>&1 & DEV_PID=$!`
+- 测试完立刻 `kill -9 $DEV_PID; sleep 1; pkill -9 -f "next-server"` (确保 Turbopack child process 也死)
+- 单 task 内不要重复启停 dev > 5 次, 累积测试到一次启动里做完
+- 任何时刻 `ps aux | grep next-server | grep -v grep | wc -l` 都应该 ≤ 1
 
 ## Dengche 工作约束 (自我提醒)
 
