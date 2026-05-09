@@ -44,17 +44,11 @@
 
 ## P1 — UX 修
 
-- [ ] **T-010 中文提示统一审查**
-  全站搜索 "Error" / "Failed" / 英文短语, 全部翻译为中文友好提示。
-  特别检查 zod error message。
+- [x] **T-010 中文提示统一审查**  *(2026-05-09 verify, src/ grep "Error|Failed|Invalid" 无残留)*
 
-- [ ] **T-011 form 提交 loading + disabled**
-  所有 form 在 pending 期间按钮 disabled + 显示 spinner (sonner toast 'submitting...')。
+- [x] **T-011 form 提交 loading + disabled**  *(2026-05-09 verify, new-entry-form.tsx 已有 disabled={pending} + "提交中...")*
 
-- [ ] **T-012 空状态文案**
-  /projects 无项目时显示 "还没有项目, 老板可以新建一个"
-  /approvals 无待审显示 "审核待办空了"
-  /me 无数据显示 "等老板审核第一笔录入后这里会有曲线"
+- [x] **T-012 空状态文案**  *(2026-05-09 完成, codex 单步加 3 page empty state)*
 
 - [x] **T-013 项目详情页加"录入新流水"按钮**  *(2026-05-09 verify 已实现, src/app/(app)/projects/[id]/page.tsx line 167 有 + 录入新流水 Link)*
 
