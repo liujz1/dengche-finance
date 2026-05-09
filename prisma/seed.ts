@@ -53,6 +53,14 @@ const entrySeeds = [
     description: "家人转账 ¥50",
     daysAgo: 5,
   },
+  {
+    id: "seed_entry_image2_pending_for_test",
+    projectId: SEED.image2ProjectId,
+    type: EntryType.EXPENSE,
+    amountCents: 9900,
+    description: "测试待审一笔 ¥99",
+    daysAgo: 1,
+  },
 ] as const;
 
 function createPrismaClient(): PrismaClient {
@@ -242,6 +250,7 @@ async function main() {
 
   // 🧾 示例流水全部已审核，方便首页和趋势图直接有可见数据。
   for (const entrySeed of entrySeeds) {
+    const isPending = entrySeed.id.includes("pending");
     const occurredAt = daysAgo(entrySeed.daysAgo);
 
     await prisma.entry.upsert({
@@ -252,10 +261,10 @@ async function main() {
         amountCents: entrySeed.amountCents,
         description: entrySeed.description,
         occurredAt,
-        status: EntryStatus.APPROVED,
+        status: isPending ? EntryStatus.PENDING : EntryStatus.APPROVED,
         createdById: owner.id,
-        approvedById: owner.id,
-        approvedAt: now,
+        approvedById: isPending ? null : owner.id,
+        approvedAt: isPending ? null : now,
       },
       create: {
         id: entrySeed.id,
@@ -264,10 +273,10 @@ async function main() {
         amountCents: entrySeed.amountCents,
         description: entrySeed.description,
         occurredAt,
-        status: EntryStatus.APPROVED,
+        status: isPending ? EntryStatus.PENDING : EntryStatus.APPROVED,
         createdById: owner.id,
-        approvedById: owner.id,
-        approvedAt: now,
+        approvedById: isPending ? null : owner.id,
+        approvedAt: isPending ? null : now,
       },
     });
 
@@ -302,36 +311,38 @@ async function main() {
       },
     });
 
-    await prisma.ledgerEvent.upsert({
-      where: { id: `${entrySeed.id}_approved` },
-      update: {
-        entryId: entrySeed.id,
-        eventType: "ENTRY_APPROVED",
-        payloadJson: eventPayload({
+    if (!isPending) {
+      await prisma.ledgerEvent.upsert({
+        where: { id: `${entrySeed.id}_approved` },
+        update: {
           entryId: entrySeed.id,
           eventType: "ENTRY_APPROVED",
-          status: EntryStatus.APPROVED,
-          description: entrySeed.description,
-          amountCents: entrySeed.amountCents,
-        }),
-        actorId: owner.id,
-        occurredAt: new Date(occurredAt.getTime() + 60 * 60 * 1000),
-      },
-      create: {
-        id: `${entrySeed.id}_approved`,
-        entryId: entrySeed.id,
-        eventType: "ENTRY_APPROVED",
-        payloadJson: eventPayload({
+          payloadJson: eventPayload({
+            entryId: entrySeed.id,
+            eventType: "ENTRY_APPROVED",
+            status: EntryStatus.APPROVED,
+            description: entrySeed.description,
+            amountCents: entrySeed.amountCents,
+          }),
+          actorId: owner.id,
+          occurredAt: new Date(occurredAt.getTime() + 60 * 60 * 1000),
+        },
+        create: {
+          id: `${entrySeed.id}_approved`,
           entryId: entrySeed.id,
           eventType: "ENTRY_APPROVED",
-          status: EntryStatus.APPROVED,
-          description: entrySeed.description,
-          amountCents: entrySeed.amountCents,
-        }),
-        actorId: owner.id,
-        occurredAt: new Date(occurredAt.getTime() + 60 * 60 * 1000),
-      },
-    });
+          payloadJson: eventPayload({
+            entryId: entrySeed.id,
+            eventType: "ENTRY_APPROVED",
+            status: EntryStatus.APPROVED,
+            description: entrySeed.description,
+            amountCents: entrySeed.amountCents,
+          }),
+          actorId: owner.id,
+          occurredAt: new Date(occurredAt.getTime() + 60 * 60 * 1000),
+        },
+      });
+    }
   }
 
   const [userCount, projectCount, entryCount, planCount] = await Promise.all([
