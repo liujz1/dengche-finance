@@ -135,3 +135,8 @@
   - dengche: spec 过滤 dev 404 (无 R2 credentials)
 - **e2e PASS** 2.7s
 - T-002 [x] / T-016 [x]
+
+## 2026-05-09 12:50 round=11 (T-003 step 2 复活)
+- T-003 step 2 spec 加进 main 的 e2e/approval.spec.ts (PR #8 关闭后丢失, 现在正式归位)
+- 3/3 PASS, 含真实点通过 + 列表少一条 + DB APPROVED + 客户端 0 报错
+- T-003 全标 [x]
