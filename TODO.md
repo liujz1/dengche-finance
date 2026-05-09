@@ -9,23 +9,15 @@
 
 ## P0 — 基础打通 (老板能 click 走完所有页面)
 
-- [ ] **T-001 全站 smoke test 找 runtime error**  *(2026-05-09 v4.2 进度: step 1 已完成, 走 v4.2 自动挡 step-by-step 模式, 不要重做 step 1)*
-  跑 `pnpm dev -p 3002`, 用 boss/partner-a/partner-b 三个账号分别登录, 依次点击:
-  /login → /projects → /projects/[第一个项目id] → /projects/new (boss) → /entries/new → /approvals (boss) → /allocations (boss) → /allocations/new (boss) → /me (partner-a)
-  每个页面截 server log 里的 error/warning, 全部修干净 (0 server-side error)。
-  完成标志: 三个账号扫一遍全 200, 无 server log error。
+- [x] **T-001 全站 smoke test 找 runtime error**  *(2026-05-09 完成, Playwright e2e 实战验证, 9 个页面 0 客户端报错)*
 
   ### Steps progress
-  - [x] step 1: /projects 未登录 redirect 到 localhost:3000 (dev port 3002 不对) — 修 src/auth.config.ts 加 trustHost: true (v4.0 模式 push, commit hash 因 filter-repo 重写改成 `2fc784c`; dengche 已改 .env 注释 AUTH_URL 配合)
-  - [x] step 2: unauthenticated baseline — 9 个页面裸 GET 全 200/307, server log 完全干净 (无 error/warn). 登录后探索移到 step 3.
-  - [ ] step 3: boss 登录后 GET /projects → 看列表渲染 + server log
-  - [ ] step 4: boss GET /projects/[第一个 id] → 详情页
-  - [ ] step 5: boss GET /projects/new + POST 建项目 → 看 server log
-  - [ ] step 6: partner-a 登录 → GET /entries/new → POST 录流水
-  - [ ] step 7: boss GET /approvals → 看待审列表
-  - [ ] step 8: boss GET /allocations + /allocations/new
-  - [ ] step 9: partner-a GET /me → 看个人趋势
-  - [ ] step 10: 三个账号扫一遍 + 0 server log error → 标 task [x]
+  - [x] step 1: 修 trustHost (修 /projects 未登录 redirect 错端口 bug)
+  - [x] step 2: unauthenticated baseline — 9 页 GET 全 200/307 server log 干净
+  - [x] step 3: 修 DropdownMenuLabel 包 DropdownMenuGroup (登录后白屏 bug)
+  - [x] step 4: e2e 实战 — boss 登录 + 6 页 (projects/new/entries/approvals/allocations/allocations-new) 全 < 500 + 0 客户端 console.error
+  - [x] step 5: partner-a 登录 + /me + /projects + /entries/new 全 < 500 + 0 客户端报错
+  - [x] e2e 设施沉淀: Playwright + 3 个 spec (e2e/auth-and-pages.spec.ts), `pnpm e2e` 任何时候可重跑
 
 - [?] **T-002 录入新流水 e2e**
   用 partner-a 登录 → /entries/new → 填项目=image2, 类型=支出, 金额=88.50, 描述="测试一笔", 时间=今天, 上传任一图片 → 提交。

@@ -48,3 +48,9 @@ next-env.d.ts
 *.db-journal
 /uploads
 .pnpm-store/
+
+# Playwright e2e
+/test-results/
+/playwright-report/
+/playwright/.cache/
+e2e-results.json

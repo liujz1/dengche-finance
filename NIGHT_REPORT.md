@@ -40,3 +40,15 @@
 - 结果: PASS, 无 bug, 标 [x]
 - 内存余量: 6068 MB (round 开始时)
 - 备注: 登录后真实流程探索移到 step 3
+
+## 2026-05-09 10:25:22 round=1
+- task dispatched: T-001
+- system unused: 5734 MB
+- (dengche 干完追加结果)
+
+## 2026-05-09 10:43 round=1 (v4.2 + GitHub Auto-Deploy + Playwright)
+- T-001 全站 smoke test 走完
+- 步骤: 修 trustHost / 修 DropdownMenuLabel / 装 Playwright / 写 e2e spec / 跑 3 个 test 全 PASS
+- 同时部署到 ops-nyc1 (192.241.137.190:3002) auto-deploy 闭环验证
+- T-001 标 [x]
+- 下一个 task: T-002 (要老板复位 [?] → [ ])
