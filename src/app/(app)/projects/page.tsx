@@ -174,14 +174,9 @@ export default async function ProjectsPage() {
         </div>
       ) : (
         <Card>
-          <CardHeader>
-            <CardTitle>暂无项目</CardTitle>
-            <CardDescription>
-              {isOwner
-                ? "先新建一个项目，再开始录入和审核流水。"
-                : "你还没有被加入任何项目分配方案。"}
-            </CardDescription>
-          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            还没有项目, 老板可以新建一个
+          </CardContent>
         </Card>
       )}
     </div>
