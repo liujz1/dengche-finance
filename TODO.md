@@ -19,14 +19,18 @@
   - [x] step 5: partner-a 登录 + /me + /projects + /entries/new 全 < 500 + 0 客户端报错
   - [x] e2e 设施沉淀: Playwright + 3 个 spec (e2e/auth-and-pages.spec.ts), `pnpm e2e` 任何时候可重跑
 
-- [?] **T-002 录入新流水 e2e**
+- [ ] **T-002 录入新流水 e2e**
   用 partner-a 登录 → /entries/new → 填项目=image2, 类型=支出, 金额=88.50, 描述="测试一笔", 时间=今天, 上传任一图片 → 提交。
   期望: redirect 到 /projects/[image2-id], Toast 提示"已提交,等待审核", 该笔在流水列表里 PENDING 状态显示。
   跑通 + 修任何 bug。
 
-- [ ] **T-003 老板审核 e2e**
+- [ ] **T-003 老板审核 e2e**  *(2026-05-09 step 1 已完成)*
   用 boss 登录 → /approvals → 看到 T-002 录入的待审 → 点查看 → Dialog 显示金额+图片+描述 → 点"通过"。
   期望: Dialog 关闭, 列表少一条, /projects/[id] 里这笔变 APPROVED, 项目盈亏更新。
+
+  ### Steps progress
+  - [x] step 1: e2e 渲染 + 权限 — boss 看 /approvals 200 + 0 客户端报错; partner-a 被 redirect 走 (OWNER-only)
+  - [ ] step 2: e2e 真实点"通过"按钮 → assert Dialog 关闭 + 列表少一条 + DB status 变 APPROVED + 项目盈亏更新
 
 - [ ] **T-004 分配方案录入 e2e**
   boss → /allocations/new?projectId=image2 → 修改三人比例 (合计仍=100%) → 保存。
