@@ -30,13 +30,7 @@
   - e2e/entry-create.spec.ts 过滤 dev 环境 404 (无 R2 credentials, evidence image fetch 自然 fail, 非业务 bug)
   e2e PASS (2.7s)
 
-- [ ] **T-003 老板审核 e2e**  *(2026-05-09 step 1 已完成)*
-  用 boss 登录 → /approvals → 看到 T-002 录入的待审 → 点查看 → Dialog 显示金额+图片+描述 → 点"通过"。
-  期望: Dialog 关闭, 列表少一条, /projects/[id] 里这笔变 APPROVED, 项目盈亏更新。
-
-  ### Steps progress
-  - [x] step 1: e2e 渲染 + 权限 — boss 看 /approvals 200 + 0 客户端报错; partner-a 被 redirect 走 (OWNER-only)
-  - [ ] step 2: e2e 真实点"通过"按钮 → assert Dialog 关闭 + 列表少一条 + DB status 变 APPROVED + 项目盈亏更新
+- [x] **T-003 老板审核 e2e**  *(2026-05-09 完成, 3/3 e2e PASS — 渲染 + 权限 + step 2 真实点通过 + 列表少一条 + DB 变 APPROVED)*
 
 - [ ] **T-004 分配方案录入 e2e**
   boss → /allocations/new?projectId=image2 → 修改三人比例 (合计仍=100%) → 保存。
