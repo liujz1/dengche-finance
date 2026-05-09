@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -92,14 +93,16 @@ export default async function AppLayout({
               </Badge>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm text-foreground">
-                    {session.user.name || "未命名用户"}
-                  </span>
-                  <span>{roleLabel(session.user.role)}</span>
-                </div>
-              </DropdownMenuLabel>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm text-foreground">
+                      {session.user.name || "未命名用户"}
+                    </span>
+                    <span>{roleLabel(session.user.role)}</span>
+                  </div>
+                </DropdownMenuLabel>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem render={<div />}>
                 <form
