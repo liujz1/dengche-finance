@@ -32,9 +32,13 @@
 
 - [x] **T-003 老板审核 e2e**  *(2026-05-09 完成, 3/3 e2e PASS — 渲染 + 权限 + step 2 真实点通过 + 列表少一条 + DB 变 APPROVED)*
 
-- [ ] **T-004 分配方案录入 e2e**
+- [ ] **T-004 分配方案录入 e2e**  *(2026-05-09 step 1 [x] 框架就位, step 2 提交 redirect WIP)*
   boss → /allocations/new?projectId=image2 → 修改三人比例 (合计仍=100%) → 保存。
   期望: redirect /allocations, 看到新方案为最新生效。
+
+  ### Steps progress
+  - [x] step 1: e2e spec 框架就位 (boss 登录 + fill effectiveFrom + 三人比例 50/30/20 + button enabled). UI 验证: 合计 100% 显示, submit button enabled.
+  - [ ] step 2: submit click 后无 redirect 无 toast, server action 似乎没真触发. RHF state UI 看着 OK. 怀疑 React 19 form action wrapper + useActionState 兼容性. 下次 cron debug.
 
 - [ ] **T-005 合伙人趋势曲线 e2e**
   partner-a → /me → 看到 image2 + windsurf 两个项目卡片 + 趋势 chart。
