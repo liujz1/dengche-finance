@@ -17,7 +17,7 @@
 
   ### Steps progress
   - [x] step 1: /projects 未登录 redirect 到 localhost:3000 (dev port 3002 不对) — 修 src/auth.config.ts 加 trustHost: true (v4.0 模式 push, commit hash 因 filter-repo 重写改成 `2fc784c`; dengche 已改 .env 注释 AUTH_URL 配合)
-  - [ ] step 2: 用 boss 真实登录 (POST /login email=boss@dengche.local password=boss123456) → 看 callback 是否进 /projects, server log 是否干净
+  - [x] step 2: unauthenticated baseline — 9 个页面裸 GET 全 200/307, server log 完全干净 (无 error/warn). 登录后探索移到 step 3.
   - [ ] step 3: boss 登录后 GET /projects → 看列表渲染 + server log
   - [ ] step 4: boss GET /projects/[第一个 id] → 详情页
   - [ ] step 5: boss GET /projects/new + POST 建项目 → 看 server log

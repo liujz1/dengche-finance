@@ -29,3 +29,14 @@
 ---
 
 ## 夜战记录 (从这下面开始, dengche 每轮追加)
+
+## 2026-05-09 09:42:07 round=0
+- task dispatched: T-001
+- system unused: 6068 MB
+- (dengche 干完追加结果)
+- step: step 2 unauthenticated baseline
+- 探索: 9 个页面裸 GET — `/` 200, `/login` 200, 其他 8 个 (需登录) 全 307 redirect 到 /login
+- server log: 无 error/warn
+- 结果: PASS, 无 bug, 标 [x]
+- 内存余量: 6068 MB (round 开始时)
+- 备注: 登录后真实流程探索移到 step 3
