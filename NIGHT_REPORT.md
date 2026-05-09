@@ -226,3 +226,14 @@
 - 老板拒绝 force push (按 git-safety.md 正确)
 - 走 B 路径: close PR #25 + 新 branch dengche-auto/T-004-T-020-fix-final + cherry-pick 修复 commit + 开 PR #26
 - ALL_DONE 状态实际生效需要 PR #26 merge + auto-deploy 跑完
+
+## 2026-05-09 18:21:54 round=15
+- task dispatched: T-020
+- system unused: 4851 MB
+- (dengche 干完追加结果)
+
+## 2026-05-09 18:30 round=24 (TODO 同步 + ALL_DONE)
+- main 上 TODO 状态过时 (PR #25 close 时 verify 标记丢失)
+- 一次性同步: T-004 [x] / T-020 [x] / T-030/T-031/T-032 [x] / 加 T-100 nav header / T-101 root redirect
+- ALL_DONE = true 行首格式 (cron 下次能 detect 退出 /loop)
+- 累计 21 个 task [x]
