@@ -11,7 +11,9 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   if (!req.auth?.user?.id) {
     const loginUrl = new URL("/login", req.nextUrl);
-    loginUrl.searchParams.set("callbackUrl", req.nextUrl.href);
+    // 用相对路径做 callbackUrl, 避免 NextAuth wrap 后 req.nextUrl.href 误用 localhost host
+    const relativeCallback = `${req.nextUrl.pathname}${req.nextUrl.search}`;
+    loginUrl.searchParams.set("callbackUrl", relativeCallback);
 
     return NextResponse.redirect(loginUrl);
   }
