@@ -182,3 +182,13 @@
 - T-020 step 2: codex 单步 75K tokens, EntryRow 加 isOwner + "反向冲销" 按钮 + Dialog (commit 4b28718), build PASS, e2e smoke 2/2 PASS
 - T-020 step 3: 真实点击 server action 没触发 (button count 不变), 跟 T-004 同根
 - 主流程: server action 写完 + UI 接好 + 权限对 (OWNER 才显示) — 业务功能 95% done
+
+## 2026-05-09 15:51:55 round=11
+- task dispatched: T-020
+- system unused: 5245 MB
+- (dengche 干完追加结果)
+
+## 2026-05-09 13:55 round=16 (T-021 完成)
+- T-020 step 3 标 [?] (跟 T-004 同根, 老板浏览器试)
+- T-021 LedgerEvent 时间线 page 完成: 新路由 /projects/[id]/[entryId], dengche 自己写 (60 行 server component + Card + Badge + ol timeline + JSON payload), e2e PASS 317ms
+- 累计 [x]: 12 (T-001/T-002/T-003/T-005/T-021 + T-010-T-016)

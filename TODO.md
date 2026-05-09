@@ -64,9 +64,8 @@
   - [x] step 2: UI — EntryRow 加 isOwner prop + "反向冲销" 按钮 (OWNER + APPROVED only) + Dialog (commit 4b28718). e2e smoke 2/2 PASS (按钮可见 / 非 OWNER 看不到).
   - [ ] step 3: 真实点击冲销 → 服务端没收到 (button count 不变), 跟 T-004 同根 (React 19 form action + useActionState 在 Dialog 内可能有 quirk). 老板浏览器试 + 拍优先级.
 
-- [ ] **T-021 LedgerEvent 时间线展示**
-  /projects/[id]/[entryId] 单条详情页 (新建路由) 显示该 entry 所有 LedgerEvent (创建 / 审核 / 驳回 / 冲销) 时间线。
-  审计可视化。
+- [x] **T-021 LedgerEvent 时间线展示**  *(2026-05-09 完成, e2e PASS 317ms)*
+  新路由 `/projects/[id]/[entryId]` 渲染审计时间线: 4 种 eventType 中文化 (创建/通过/驳回/反向冲销) + JSON payload 折叠.
 
 - [ ] **T-022 数据备份脚本**
   写 scripts/backup.sh: cp dev.db backups/dev-$(date +%Y%m%d-%H%M).db + tar uploads/
