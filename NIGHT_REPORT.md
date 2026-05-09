@@ -52,3 +52,14 @@
 - 同时部署到 ops-nyc1 (192.241.137.190:3002) auto-deploy 闭环验证
 - T-001 标 [x]
 - 下一个 task: T-002 (要老板复位 [?] → [ ])
+
+## 2026-05-09 10:52:04 round=2
+- task dispatched: T-003
+- system unused: 5669 MB
+- (dengche 干完追加结果)
+
+## 2026-05-09 10:55 round=2 (cron T-003 dispatch)
+- T-002 [?] → [ ] 复位 (codex 旧 stash 不恢复, 从头做)
+- T-003 step 1 完成: e2e 渲染 + 权限 2/2 PASS
+- T-003 step 2 (点通过 + 验证 APPROVED) 留下次 cron / 老板优先级拍
+- 累计 e2e: 5 个 spec 全 PASS (auth-and-pages 3 + approval 2)
