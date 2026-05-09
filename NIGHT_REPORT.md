@@ -220,3 +220,9 @@
 - e2e admin-users.spec.ts 3/3 PASS (列表/权限/nav)
 - T-040 整体 [x]
 - 累计 [x]: 14
+
+## 2026-05-09 17:24 round=22 (cron 唤醒, PR 25 卡冲突 → close + 新 branch 重提)
+- 上一轮 ALL_DONE 标的 fix 卡 PR #25 因 main 分歧无法 cleanly merge
+- 老板拒绝 force push (按 git-safety.md 正确)
+- 走 B 路径: close PR #25 + 新 branch dengche-auto/T-004-T-020-fix-final + cherry-pick 修复 commit + 开 PR #26
+- ALL_DONE 状态实际生效需要 PR #26 merge + auto-deploy 跑完

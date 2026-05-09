@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { useForm } from "react-hook-form";
@@ -100,6 +101,7 @@ export function AllocationPlanForm({
     createAllocationPlanAction,
     initialState
   );
+  const router = useRouter();
   const lastErrorRef = useRef<string | undefined>(undefined);
   const defaultShares = useMemo(
     () =>
@@ -143,6 +145,13 @@ export function AllocationPlanForm({
       lastErrorRef.current = state.error;
     }
   }, [state.error]);
+
+  useEffect(() => {
+    if (state.success) {
+      toast.success("已保存分配方案");
+      router.push("/allocations");
+    }
+  }, [state.success, router]);
 
   return (
     <form
