@@ -172,3 +172,13 @@
 - codex 单步 49.9K tokens 写 reverseEntryAction 完成 (commit b7fe77d)
 - build PASS
 - step 2 UI + step 3 e2e 留下次 cron
+
+## 2026-05-09 15:22:25 round=10
+- task dispatched: T-020
+- system unused: 5333 MB
+- (dengche 干完追加结果)
+
+## 2026-05-09 13:42 round=15 (T-020 step 2 完 + step 3 撞墙)
+- T-020 step 2: codex 单步 75K tokens, EntryRow 加 isOwner + "反向冲销" 按钮 + Dialog (commit 4b28718), build PASS, e2e smoke 2/2 PASS
+- T-020 step 3: 真实点击 server action 没触发 (button count 不变), 跟 T-004 同根
+- 主流程: server action 写完 + UI 接好 + 权限对 (OWNER 才显示) — 业务功能 95% done

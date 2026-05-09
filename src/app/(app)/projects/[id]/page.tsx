@@ -267,11 +267,12 @@ export default async function ProjectDetailPage({
                   <TableHead>录入人</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead>凭证</TableHead>
+                  {isOwner ? <TableHead>操作</TableHead> : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {entries.map((entry) => (
-                  <EntryRow key={entry.id} entry={entry} />
+                  <EntryRow key={entry.id} entry={entry} isOwner={isOwner} />
                 ))}
               </TableBody>
             </Table>
