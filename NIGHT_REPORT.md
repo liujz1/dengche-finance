@@ -151,3 +151,13 @@
 - T-004 dispatch — 框架 spec 就位, UI 显示 "合计 100%" + button enabled, 但 submit click 后没 redirect 没 toast
 - 怀疑 React 19 form action wrapper + useActionState 兼容性 issue
 - T-004 standby (test.skip), 下次 cron debug
+
+## 2026-05-09 14:22:32 round=8
+- task dispatched: T-004
+- system unused: 5070 MB
+- (dengche 干完追加结果)
+
+## 2026-05-09 13:13 round=13 (T-005 一遍过 + T-004 标 [?])
+- T-005 partner-a /me 趋势曲线 e2e 一遍过 (370ms)
+- T-004 标 [?] (cron 跳过, 老板浏览器手动试 + 拍优先级)
+- 累计 [x]: T-001/T-002/T-003/T-005 + T-010-T-016 = 11 个
