@@ -140,3 +140,14 @@
 - T-003 step 2 spec 加进 main 的 e2e/approval.spec.ts (PR #8 关闭后丢失, 现在正式归位)
 - 3/3 PASS, 含真实点通过 + 列表少一条 + DB APPROVED + 客户端 0 报错
 - T-003 全标 [x]
+
+## 2026-05-09 13:52:02 round=7
+- task dispatched: T-004
+- system unused: 5174 MB
+- (dengche 干完追加结果)
+
+## 2026-05-09 13:08 round=12 (T-004 partial)
+- T-003 step 2 复活 PR #16 merged, T-003 完整 [x] 在 main 上
+- T-004 dispatch — 框架 spec 就位, UI 显示 "合计 100%" + button enabled, 但 submit click 后没 redirect 没 toast
+- 怀疑 React 19 form action wrapper + useActionState 兼容性 issue
+- T-004 standby (test.skip), 下次 cron debug
