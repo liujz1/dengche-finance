@@ -192,3 +192,13 @@
 - T-020 step 3 标 [?] (跟 T-004 同根, 老板浏览器试)
 - T-021 LedgerEvent 时间线 page 完成: 新路由 /projects/[id]/[entryId], dengche 自己写 (60 行 server component + Card + Badge + ol timeline + JSON payload), e2e PASS 317ms
 - 累计 [x]: 12 (T-001/T-002/T-003/T-005/T-021 + T-010-T-016)
+
+## 2026-05-09 16:22:08 round=12
+- task dispatched: T-020
+- system unused: 5097 MB
+- (dengche 干完追加结果)
+
+## 2026-05-09 14:00 round=17 (T-022 完成)
+- T-022 备份脚本 — codex 单步 commit d3f1303 (scripts/backup.sh + README + .gitignore)
+- 实测跑通: dev.db 备份 + uploads.tar.gz 进 backups/ + 留 7 天自动清
+- 累计 [x]: 13
