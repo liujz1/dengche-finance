@@ -160,15 +160,15 @@ export function ApprovalDialog({ entry }: { entry: ApprovalEntry }) {
   const amount = signedAmount(entry);
 
   return (
-    <Dialog>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
-        查看
-      </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
-        <StateToaster state={approveState} successMessage="已通过" />
-        <StateToaster state={rejectState} successMessage="已驳回" />
-
-        <DialogHeader>
+    <>
+      <StateToaster state={approveState} successMessage="已通过" />
+      <StateToaster state={rejectState} successMessage="已驳回" />
+      <Dialog>
+        <DialogTrigger render={<Button variant="outline" size="sm" />}>
+          查看
+        </DialogTrigger>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
           <DialogTitle className="pr-8">审核流水</DialogTitle>
           <DialogDescription>
             {entry.projectName} · {entry.createdByName} ·{" "}
@@ -294,7 +294,8 @@ export function ApprovalDialog({ entry }: { entry: ApprovalEntry }) {
             </form>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
