@@ -19,12 +19,16 @@
   - [x] step 5: partner-a 登录 + /me + /projects + /entries/new 全 < 500 + 0 客户端报错
   - [x] e2e 设施沉淀: Playwright + 3 个 spec (e2e/auth-and-pages.spec.ts), `pnpm e2e` 任何时候可重跑
 
-- [ ] **T-002 录入新流水 e2e**  *(2026-05-09 step 1 [x], step 2 真因找到, 待修业务代码)*
+- [x] **T-002 录入新流水 e2e**  *(2026-05-09 完成, 真因 = form 缺 success redirect handler, 已修)*
 
-  ### Steps progress
-  - [x] step 1: e2e spec 框架就位 (partner-a 登录 + select 项目/类型 + fill 金额/描述 + PNG 上传)
-  - [x] step 2.1: occurredAt date 默认值 fix 已应用 (显式 fill today, dispatch change event)
-  - [ ] step 2.2: **真因** — `src/app/(app)/entries/new/new-entry-form.tsx` 里 `<Select name="projectId">` 和 `<Select name="type">` 没用 react-hook-form Controller 包. base-ui Select 的 onValueChange 不触发 register 监听的 change → RHF state 始终空 → `await trigger()` 校验 fail → form 不提交. fix: 用 `<Controller name="projectId" control={control} render={({field}) => <Select onValueChange={field.onChange} value={field.value}>` 包. (这是真业务 bug, 不光影响 e2e — 用户在浏览器选项目时 RHF state 也不同步, validation message 可能不准.)
+  ### 真因
+  原 form action: `toast.success(); formAction(formData);` — toast 早于 server action; 没 useEffect 监听 state.success → 用户提交后页面不动, 看到 toast 但 URL 不变, 重复点提交风险.
+
+  ### Fix (3 改动)
+  - new-entry-form.tsx: 删早 toast + 加 useEffect 监听 state.success && state.projectId → toast.success + router.push (codex 单步 commit cb4bb4f)
+  - server/entries.ts CreateEntryState 加 `projectId?: string` 字段 + createEntryAction return 加 projectId (dengche 改)
+  - e2e/entry-create.spec.ts 过滤 dev 环境 404 (无 R2 credentials, evidence image fetch 自然 fail, 非业务 bug)
+  e2e PASS (2.7s)
 
 - [ ] **T-003 老板审核 e2e**  *(2026-05-09 step 1 已完成)*
   用 boss 登录 → /approvals → 看到 T-002 录入的待审 → 点查看 → Dialog 显示金额+图片+描述 → 点"通过"。
@@ -58,8 +62,7 @@
   公网 http://192.241.137.190:3002/projects 未登录 redirect 时, callbackUrl 指向 localhost:3002 而不是 192.241.137.190. 用户登录后会跳错地方.
   跟 T-001 step 1 trustHost 类似但是 callbackUrl 是另一条路径. 排查方向: middleware.ts `req.nextUrl.href` 在 NextAuth wrap 后是不是还指 localhost.
 
-- [ ] **T-016 T-002 e2e 提交 root cause 重新定位**  *(2026-05-09 dengche 看代码后修正)*
-  原假设 (Select 没用 Controller) 不成立 — 看 src/app/(app)/entries/new/new-entry-form.tsx line 200-209, Select 的 `onValueChange` 已经手动调 `setValue("projectId", ...)`, RHF state 应该是同步的. 真因待查方向: (1) evidence FileList 通过 `register` 是否真注入 RHF state (zod custom<FileList> refine 校验); (2) form action 内部 `validateEvidenceFile(formData)` vs `trigger()` 顺序; (3) 老板浏览器手动试一次确认是 e2e 写法问题还是真业务 bug.
+- [x] **T-016 T-002 e2e 真因定位**  *(2026-05-09 完成, 真因 = form 缺 success redirect handler, 跟 T-002 一起修)*
 
 ## P2 — 数据完整性
 

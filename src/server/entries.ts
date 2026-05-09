@@ -45,6 +45,7 @@ const rejectEntrySchema = z.object({
 export type CreateEntryState = {
   success?: boolean;
   entryId?: string;
+  projectId?: string;
   error?: string;
 };
 
@@ -260,6 +261,7 @@ export async function createEntryAction(
   return {
     success: true,
     entryId: entrySnapshot.id,
+    projectId: entrySnapshot.projectId,
   };
 }
 
