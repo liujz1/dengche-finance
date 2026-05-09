@@ -200,7 +200,7 @@ export default async function ApprovalsPage() {
             </Table>
           ) : (
             <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-              当前没有待审核流水。
+              审核待办空了
             </div>
           )}
         </CardContent>

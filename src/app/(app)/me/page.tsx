@@ -468,7 +468,13 @@ export default async function MePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <EarningsChart data={chartData} />
+          {chartData.length > 0 ? (
+            <EarningsChart data={chartData} />
+          ) : (
+            <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+              等老板审核第一笔录入后这里会有曲线
+            </div>
+          )}
         </CardContent>
       </Card>
 
