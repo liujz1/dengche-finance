@@ -67,9 +67,7 @@
 - [x] **T-021 LedgerEvent 时间线展示**  *(2026-05-09 完成, e2e PASS 317ms)*
   新路由 `/projects/[id]/[entryId]` 渲染审计时间线: 4 种 eventType 中文化 (创建/通过/驳回/反向冲销) + JSON payload 折叠.
 
-- [ ] **T-022 数据备份脚本**
-  写 scripts/backup.sh: cp dev.db backups/dev-$(date +%Y%m%d-%H%M).db + tar uploads/
-  README 加 cron job 例子。
+- [x] **T-022 数据备份脚本**  *(2026-05-09 完成, 跑通: dev.db + uploads.tar.gz 进 backups/, 留 7 天自动清, README cron 例子)*
 
 ## P0 — 老板反馈追加 (v0.7 上线后实战发现)
 
