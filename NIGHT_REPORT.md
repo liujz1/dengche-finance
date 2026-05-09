@@ -116,3 +116,22 @@
   - T-016 new-entry-form Select 没用 RHF Controller (RHF state 不同步)
 - **PR #8 关闭** (T-003 step 2 e2e + T-014 entry 跟 PR #9 冲突卡 OPEN, 内容已通过 PR #10 等替代修)
 - **本机已清干净**, 服务器接管全部业务流量
+
+## 2026-05-09 12:04:07 round=4
+- task dispatched: T-002
+- system unused: 5331 MB
+- (dengche 干完追加结果)
+
+## 2026-05-09 12:22:01 round=5
+- task dispatched: T-002
+- system unused: 5293 MB
+- (dengche 干完追加结果)
+
+## 2026-05-09 12:35 round=9 (T-002 真因 + 修)
+- **真因找到** (debug spec capture sonner toast 看到 "已提交,等待老板审核"): form 没 useEffect 监听 state.success → router.push redirect. 用户提交成功但页面不动, 容易重复点击.
+- **修 3 处**:
+  - codex 单步: new-entry-form.tsx 加 useEffect 监听 state.success → router.push
+  - dengche: CreateEntryState 加 projectId 字段 + return 带回 projectId (build TS error)
+  - dengche: spec 过滤 dev 404 (无 R2 credentials)
+- **e2e PASS** 2.7s
+- T-002 [x] / T-016 [x]
