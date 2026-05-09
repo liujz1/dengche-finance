@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { useForm } from "react-hook-form";
@@ -131,6 +132,7 @@ export function NewEntryForm({
     createEntryAction,
     initialState
   );
+  const router = useRouter();
   const lastErrorRef = useRef<string | undefined>(undefined);
   const safeDefaultProjectId = projects.some(
     (project) => project.id === defaultProjectId
@@ -164,6 +166,13 @@ export function NewEntryForm({
     }
   }, [state.error]);
 
+  useEffect(() => {
+    if (state.success && state.projectId) {
+      toast.success("已提交，等待老板审核");
+      router.push(`/projects/${state.projectId}`);
+    }
+  }, [state.success, state.projectId, router]);
+
   return (
     <form
       action={async (formData) => {
@@ -182,7 +191,6 @@ export function NewEntryForm({
           return;
         }
 
-        toast.success("已提交，等待老板审核");
         formAction(formData);
       }}
     >
