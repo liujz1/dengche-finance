@@ -1,20 +1,29 @@
 "use client";
 
+import Form from "next/form";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { ImageIcon, PaperclipIcon } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { TableCell, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import type { EntryStatus, EntryType } from "@/generated/prisma/enums";
 import { entryTypeLabel, formatDate, formatYuan } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { reverseEntryAction, type ReverseEntryState } from "@/server/entries";
 
 type EntryRowEvidence = {
   id: string;
@@ -88,8 +97,119 @@ function formatFileSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function EntryRow({ entry }: { entry: EntryRowEntry }) {
+const initialReverseState: ReverseEntryState = {};
+
+function ReverseSubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button type="submit" variant="destructive" disabled={pending}>
+      {pending ? "处理中..." : "确认冲销"}
+    </Button>
+  );
+}
+
+function StateToaster({
+  state,
+  successMessage,
+  onSuccess,
+}: {
+  state: ReverseEntryState;
+  successMessage: string;
+  onSuccess?: () => void;
+}) {
+  const lastMessageRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    const message = state.error || (state.success ? successMessage : undefined);
+
+    if (message && message !== lastMessageRef.current) {
+      if (state.error) {
+        toast.error(state.error);
+      } else {
+        toast.success(successMessage);
+        onSuccess?.();
+      }
+
+      lastMessageRef.current = message;
+    }
+  }, [onSuccess, state, successMessage]);
+
+  return null;
+}
+
+function ReverseEntryDialog({ entryId }: { entryId: string }) {
+  const [open, setOpen] = useState(false);
+  const [state, formAction] = useActionState(
+    reverseEntryAction,
+    initialReverseState
+  );
+
+  return (
+    <>
+      <StateToaster
+        state={state}
+        successMessage="已冲销"
+        onSuccess={() => setOpen(false)}
+      />
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger
+          render={
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={(event) => event.stopPropagation()}
+            />
+          }
+        >
+          反向冲销
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>反向冲销</DialogTitle>
+            <DialogDescription>
+              请填写冲销原因。提交后原流水会标记为已冲销。
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form action={formAction} className="space-y-4">
+            <input type="hidden" name="entryId" value={entryId} />
+            <Textarea
+              name="reason"
+              minLength={1}
+              maxLength={200}
+              required
+              placeholder="原因"
+              aria-label="冲销原因"
+              className="min-h-24"
+            />
+            {state.error ? (
+              <p className="text-sm text-destructive" role="alert">
+                {state.error}
+              </p>
+            ) : null}
+            <DialogFooter className="mx-0 mb-0 border-t-0 bg-transparent p-0">
+              <DialogClose render={<Button type="button" variant="outline" />}>
+                取消
+              </DialogClose>
+              <ReverseSubmitButton />
+            </DialogFooter>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+export function EntryRow({
+  entry,
+  isOwner,
+}: {
+  entry: EntryRowEntry;
+  isOwner?: boolean;
+}) {
   const displayAmount = signedAmount(entry);
+  const canReverse = entry.status === "APPROVED" && isOwner;
 
   return (
     <Dialog>
@@ -138,6 +258,11 @@ export function EntryRow({ entry }: { entry: EntryRowEntry }) {
             )}
           </div>
         </TableCell>
+        {isOwner ? (
+          <TableCell onClick={(event) => event.stopPropagation()}>
+            {canReverse ? <ReverseEntryDialog entryId={entry.id} /> : null}
+          </TableCell>
+        ) : null}
       </DialogTrigger>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
