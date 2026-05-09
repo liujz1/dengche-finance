@@ -37,7 +37,7 @@ test("T-020 step 2: partner-a 看不到反向冲销按钮 (非 OWNER)", async ({
   await expect(page.getByRole("button", { name: /反向冲销/ })).toHaveCount(0);
 });
 
-test.skip("T-020 step 3: boss 真实点反向冲销 (WIP — submit click 后 button count 没变, server action 似乎没触发. 跟 T-004 类似撞墙. 老板浏览器试 + 拍)", async ({ page }) => {
+test("T-020 step 3: boss 真实点反向冲销 → 列表少一个 APPROVED + 0 报错", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("pageerror", (e) => consoleErrors.push(`pageerror: ${e.message}`));
   page.on("console", (msg) => {

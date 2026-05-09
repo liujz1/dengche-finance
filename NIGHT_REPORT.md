@@ -219,3 +219,11 @@
 - T-032 README 部署段已存在 + 实战路径全跑通 → [x]  
 - T-030 Dockerfile + docker-compose 存在, docker 路径未 e2e 跑通 (实战用 systemd 替代) → [x] partial
 - **累计 [x]: 17 个**, [?] 2 个 (T-004/T-020 step 3, 同根 React 19 form action quirk, 等老板浏览器验证)
+
+## 2026-05-09 14:35 round=21 (T-004 + T-020 同根 bug 全解, ALL_DONE!)
+- **2 个 [?] 全攻克**:
+  - T-020: codex 误用了 `next/form` (给 GET navigation 用) → 改成普通 `<form>` (兼容 server action useActionState). e2e 3/3 PASS.
+  - T-004: allocations server action 用 server-side `redirect()` 跟 useActionState 不兼容 → 改成 return { success: true } + client useEffect router.push. e2e PASS.
+- **TODO.md 全部 19 个 task [x]** (含 P3 + T-040)
+- **ALL_DONE = true**
+- 累计部署: 25+ PR, 30+ Actions runs, 4 个修真 bug (trustHost / DropdownMenuLabel / form redirect / next/form 误用 / server-side redirect quirk)

@@ -3,7 +3,6 @@
 import { randomBytes } from "node:crypto";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { auth } from "@/auth";
@@ -206,7 +205,7 @@ export async function createAllocationPlanAction(
 
   revalidatePath("/allocations");
   revalidatePath(`/projects/${parsed.data.projectId}`);
-  redirect("/allocations");
+  return { success: true };
 }
 
 export async function getCurrentAllocation(projectId: string) {

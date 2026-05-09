@@ -32,8 +32,7 @@
 
 - [x] **T-003 老板审核 e2e**  *(2026-05-09 完成, 3/3 e2e PASS — 渲染 + 权限 + step 2 真实点通过 + 列表少一条 + DB 变 APPROVED)*
 
-- [?] **T-004 分配方案录入 e2e**  *(2026-05-09 卡 step 2 — 老板浏览器试 + 拍优先级)*
-  step 1 框架就位但 step 2 submit click 后 server action 似乎没真触发 (无 redirect 无 toast). e2e/allocation.spec.ts test.skip 暂存. 老板试一下 boss → /allocations/new?projectId=seed_project_image2 → 填三人比例, 看是真业务 bug 还是 e2e 写法问题.
+- [x] **T-004 分配方案录入 e2e**  *(2026-05-09 完成! Root cause: server-side redirect() 跟 useActionState 不兼容, 改成 return success + client useEffect router.push)*
 
 - [x] **T-005 合伙人趋势曲线 e2e**  *(2026-05-09 完成, 一遍过 PASS 370ms)*
 
@@ -57,12 +56,15 @@
 
 ## P2 — 数据完整性
 
-- [ ] **T-020 反向冲销 e2e + UI**  *(2026-05-09 step 1+2 [x], step 3 真实点击 WIP — 跟 T-004 类似 form 撞墙)*
+- [x] **T-020 反向冲销 e2e + UI**  *(2026-05-09 完成! e2e 3/3 PASS — root cause 找到: codex 误用了 `next/form` 该用普通 `<form>`)*
+
+  ### Root cause
+  codex 写 ReverseDialog 时 `import Form from "next/form"` + `<Form action={formAction}>` — `next/form` 是给 GET navigation 用的不兼容 server action useActionState. 改成普通 `<form action={formAction}>` 后 server action 触发, e2e step 3 真实点击 PASS.
 
   ### Steps progress
-  - [x] step 1: reverseEntryAction server action (commit b7fe77d)
-  - [x] step 2: UI — EntryRow 加 isOwner prop + "反向冲销" 按钮 (OWNER + APPROVED only) + Dialog (commit 4b28718). e2e smoke 2/2 PASS (按钮可见 / 非 OWNER 看不到).
-  - [ ] step 3: 真实点击冲销 → 服务端没收到 (button count 不变), 跟 T-004 同根 (React 19 form action + useActionState 在 Dialog 内可能有 quirk). 老板浏览器试 + 拍优先级.
+  - [x] step 1: reverseEntryAction server action
+  - [x] step 2: UI Dialog (含 OWNER + APPROVED 权限)
+  - [x] step 3: 真实点击 e2e — 3/3 PASS (按钮可见 / 非 OWNER 看不到 / 真实冲销列表少一条 + 0 报错)
 
 - [x] **T-021 LedgerEvent 时间线展示**  *(2026-05-09 完成, e2e PASS 317ms)*
   新路由 `/projects/[id]/[entryId]` 渲染审计时间线: 4 种 eventType 中文化 (创建/通过/驳回/反向冲销) + JSON payload 折叠.
@@ -117,13 +119,16 @@
 
 - [x] **T-032 部署文档**  *(2026-05-09 完成, README line 85+ 已有 VPS + systemd 部署段; 实战部署到 ops-nyc1 192.241.137.190:3002 + GitHub Actions auto-deploy 链路全跑通)*
 
-## 进度总结 (2026-05-09 14:25)
+## 进度总结 (2026-05-09 14:35)
+
+ALL_DONE = true (2026-05-09 14:35) — **全部 P0/P1/P2/P3 + T-040 19 个 task 全 [x]**
 
 | 类 | 状态 |
 |----|------|
-| **P0 P1 P2 P3 [x]** | 16 个 task 全 [x] |
-| **[?] 卡住等老板** | 2 个 — T-004 / T-020 step 3 (同根 React 19 form action quirk, 业务功能 95% done, 等老板浏览器手动验证业务流程) |
-| **离 ALL_DONE** | 严格说差 2 个 [?] → [x]; 业务层全跑通可上 |
+| 全部 task | ✅ 19 [x], 0 [ ], 0 [?] |
+| 业务流程 | 全 e2e 实测通过 (登录/录入/审核/反向冲销/趋势/分配/admin) |
+| 部署 | 服务器跑 (192.241.137.190:3002) + Actions auto-deploy 闭环 |
+| 备份 | 脚本就位 + cron 文档 |
 
 ---
 
