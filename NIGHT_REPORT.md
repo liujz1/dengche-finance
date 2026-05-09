@@ -202,3 +202,14 @@
 - T-022 备份脚本 — codex 单步 commit d3f1303 (scripts/backup.sh + README + .gitignore)
 - 实测跑通: dev.db 备份 + uploads.tar.gz 进 backups/ + 留 7 天自动清
 - 累计 [x]: 13
+
+## 2026-05-09 16:52:27 round=13
+- task dispatched: T-020
+- system unused: 4999 MB
+- (dengche 干完追加结果)
+
+## 2026-05-09 14:11 round=18 (T-040 step 1)
+- T-040 用户管理 拆 5 step
+- step 1 server actions 完成 (codex 22K tokens, commit 272f2ab)
+- tsc 0 error
+- step 2-5 (UI pages + nav + e2e) 待下次 cron
