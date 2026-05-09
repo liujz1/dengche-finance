@@ -63,3 +63,10 @@
 - T-003 step 1 完成: e2e 渲染 + 权限 2/2 PASS
 - T-003 step 2 (点通过 + 验证 APPROVED) 留下次 cron / 老板优先级拍
 - 累计 e2e: 5 个 spec 全 PASS (auth-and-pages 3 + approval 2)
+
+## 2026-05-09 11:50 round=4 (cron T-002 dispatch)
+- 写 T-002 录入 e2e spec (含 PNG buffer 上传)
+- 跑 spec: form 提交后没 redirect → 客户端 form 没真送出
+- 怀疑 react-hook-form register("evidence") 跟 playwright setInputFiles 不直接同步, 或 occurredAt date 默认值没注入
+- spec 暂 test.skip 标存. 下次 cron debug
+- T-002 step 1 [x] step 2 [ ]
