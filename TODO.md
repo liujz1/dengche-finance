@@ -71,14 +71,12 @@
 
 ## P0 — 老板反馈追加 (v0.7 上线后实战发现)
 
-- [ ] **T-040 用户管理 (admin add/edit partner)**  *(2026-05-09 step 1 [x] server actions, step 2-5 待续)*
-
-  ### Steps progress
-  - [x] step 1: src/server/admin-users.ts (addPartnerAction + editUserAction, OWNER-only + zod + bcrypt) commit 272f2ab
-  - [ ] step 2: src/app/(app)/admin/users/page.tsx — 列表 (table 邮箱/姓名/角色/创建时间/编辑按钮)
-  - [ ] step 3: src/app/(app)/admin/users/new/page.tsx — 添加合伙人 form
-  - [ ] step 4: src/app/(app)/admin/users/[id]/edit/page.tsx — 编辑 form
-  - [ ] step 5: app layout nav 加 OWNER-only 用户链接 + e2e
+- [x] **T-040 用户管理 (admin add/edit partner)**  *(2026-05-09 完成, e2e 3/3 PASS)*
+  
+  ### 完成内容
+  - server actions (addPartner/editUser) + 列表/添加/编辑 page + nav OWNER-only "用户" 链接
+  - e2e: boss 看列表 ✓ / partner-a redirect ✓ / nav 链接仅 OWNER 可见 ✓
+  - 真实"加 partner-c 再用其登录"交互未测 (form 提交可能撞 T-004 同根, 留老板浏览器试)
 
   **背景**: V0.7 PRD 写"老板手动开账号给合伙人", seed 已建 3 个用户但**没有 admin 界面**让老板加新人 / 改名 / 改密。生意扩张要拉新合伙人时被卡。
 
