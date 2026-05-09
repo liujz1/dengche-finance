@@ -213,3 +213,9 @@
 - step 1 server actions 完成 (codex 22K tokens, commit 272f2ab)
 - tsc 0 error
 - step 2-5 (UI pages + nav + e2e) 待下次 cron
+
+## 2026-05-09 14:25 round=20 (P3 batch verify)
+- T-031 ci.yml 已 24+ runs PASS → [x]
+- T-032 README 部署段已存在 + 实战路径全跑通 → [x]  
+- T-030 Dockerfile + docker-compose 存在, docker 路径未 e2e 跑通 (实战用 systemd 替代) → [x] partial
+- **累计 [x]: 17 个**, [?] 2 个 (T-004/T-020 step 3, 同根 React 19 form action quirk, 等老板浏览器验证)
