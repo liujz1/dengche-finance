@@ -19,13 +19,12 @@
   - [x] step 5: partner-a 登录 + /me + /projects + /entries/new 全 < 500 + 0 客户端报错
   - [x] e2e 设施沉淀: Playwright + 3 个 spec (e2e/auth-and-pages.spec.ts), `pnpm e2e` 任何时候可重跑
 
-- [ ] **T-002 录入新流水 e2e**  *(2026-05-09 step 1 [x], step 2 WIP)*
-  用 partner-a 登录 → /entries/new → 填项目=image2, 类型=支出, 金额=88.50, 描述="测试一笔", 时间=今天, 上传任一图片 → 提交。
-  期望: redirect 到 /projects/[image2-id], Toast 提示"已提交,等待审核", 该笔在流水列表里 PENDING 状态显示。
+- [ ] **T-002 录入新流水 e2e**  *(2026-05-09 step 1 [x], step 2 真因找到, 待修业务代码)*
 
   ### Steps progress
-  - [x] step 1: e2e spec 框架就位 — partner-a 登录 → /entries/new 渲染 OK + 点 select 选 image2/支出 + fill 金额/描述 + 上传 PNG buffer
-  - [ ] step 2: 提交后未 redirect — 客户端 form 没真提交 (server log 无 createEntry 事件). 怀疑 react-hook-form `register("evidence")` 跟 playwright `setInputFiles` 不直接同步 / 或 occurredAt date input 默认值没注入. 下次 cron debug. spec 当前 test.skip 暂存. 见 e2e/entry-create.spec.ts
+  - [x] step 1: e2e spec 框架就位 (partner-a 登录 + select 项目/类型 + fill 金额/描述 + PNG 上传)
+  - [x] step 2.1: occurredAt date 默认值 fix 已应用 (显式 fill today, dispatch change event)
+  - [ ] step 2.2: **真因** — `src/app/(app)/entries/new/new-entry-form.tsx` 里 `<Select name="projectId">` 和 `<Select name="type">` 没用 react-hook-form Controller 包. base-ui Select 的 onValueChange 不触发 register 监听的 change → RHF state 始终空 → `await trigger()` 校验 fail → form 不提交. fix: 用 `<Controller name="projectId" control={control} render={({field}) => <Select onValueChange={field.onChange} value={field.value}>` 包. (这是真业务 bug, 不光影响 e2e — 用户在浏览器选项目时 RHF state 也不同步, validation message 可能不准.)
 
 - [ ] **T-003 老板审核 e2e**  *(2026-05-09 step 1 已完成)*
   用 boss 登录 → /approvals → 看到 T-002 录入的待审 → 点查看 → Dialog 显示金额+图片+描述 → 点"通过"。
@@ -60,6 +59,15 @@
 - [ ] **T-013 项目详情页加"录入新流水"按钮**
   /projects/[id] 顶部加一个绿色 button "+ 录入新流水"  → /entries/new?projectId=[id]
   这是高频动作, 不该埋在 nav 里。
+
+- [x] **T-014 修复 ApprovalDialog toast 显示**  *(2026-05-09 完成, PR #10)*
+
+- [ ] **T-015 服务器 callbackUrl 残留 localhost**  *(2026-05-09 fork B 实测发现)*
+  公网 http://192.241.137.190:3002/projects 未登录 redirect 时, callbackUrl 指向 localhost:3002 而不是 192.241.137.190. 用户登录后会跳错地方.
+  跟 T-001 step 1 trustHost 类似但是 callbackUrl 是另一条路径. 排查方向: middleware.ts `req.nextUrl.href` 在 NextAuth wrap 后是不是还指 localhost.
+
+- [ ] **T-016 new-entry-form 用 react-hook-form Controller 包 base-ui Select**  *(2026-05-09 T-002 step 2 暴露)*
+  bug: `<Select name="projectId">` 和 `<Select name="type">` 没用 Controller, base-ui Select 的 onValueChange 不触发 RHF register 的 change → RHF state 始终空 → trigger 校验 fail. 不光影响 e2e, 浏览器场景 RHF state 也错. 派 codex 用 `<Controller name="projectId" control={control} render={({field}) => <Select onValueChange={field.onChange} value={field.value}>` 包.
 
 ## P2 — 数据完整性
 
