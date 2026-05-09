@@ -1,6 +1,5 @@
 "use client";
 
-import Form from "next/form";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { ImageIcon, PaperclipIcon } from "lucide-react";
@@ -172,7 +171,7 @@ function ReverseEntryDialog({ entryId }: { entryId: string }) {
             </DialogDescription>
           </DialogHeader>
 
-          <Form action={formAction} className="space-y-4">
+          <form action={formAction} className="space-y-4">
             <input type="hidden" name="entryId" value={entryId} />
             <Textarea
               name="reason"
@@ -194,7 +193,7 @@ function ReverseEntryDialog({ entryId }: { entryId: string }) {
               </DialogClose>
               <ReverseSubmitButton />
             </DialogFooter>
-          </Form>
+          </form>
         </DialogContent>
       </Dialog>
     </>

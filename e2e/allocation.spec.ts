@@ -11,7 +11,7 @@ async function loginAsBoss(page: any) {
   await page.waitForURL(/\/(projects|me|allocations|approvals)/, { timeout: 10_000 });
 }
 
-test.skip("T-004: boss 录入分配方案 e2e (WIP — submit click 后无 redirect 无 toast, server action 似乎没触发. RHF state 看着 OK (合计 100% 显示 + button enabled). 下次 cron debug — 怀疑 React 19 form action wrapper + useActionState 兼容性)", async ({ page }) => {
+test("T-004: boss 录入分配方案 e2e", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("pageerror", (e) => consoleErrors.push(`pageerror: ${e.message}`));
   page.on("console", (msg) => {
