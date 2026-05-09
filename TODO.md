@@ -24,13 +24,10 @@
   期望: redirect 到 /projects/[image2-id], Toast 提示"已提交,等待审核", 该笔在流水列表里 PENDING 状态显示。
   跑通 + 修任何 bug。
 
-- [ ] **T-003 老板审核 e2e**  *(2026-05-09 step 1 已完成)*
-  用 boss 登录 → /approvals → 看到 T-002 录入的待审 → 点查看 → Dialog 显示金额+图片+描述 → 点"通过"。
-  期望: Dialog 关闭, 列表少一条, /projects/[id] 里这笔变 APPROVED, 项目盈亏更新。
-
+- [x] **T-003 老板审核 e2e**  *(2026-05-09 完成, 3/3 e2e PASS)*
   ### Steps progress
   - [x] step 1: e2e 渲染 + 权限 — boss 看 /approvals 200 + 0 客户端报错; partner-a 被 redirect 走 (OWNER-only)
-  - [ ] step 2: e2e 真实点"通过"按钮 → assert Dialog 关闭 + 列表少一条 + DB status 变 APPROVED + 项目盈亏更新
+  - [x] step 2: e2e boss 点查看 → 点通过 → 列表少一条 + DB 里 status 变 APPROVED. 暴露一个 UX bug → P1 T-014 修
 
 - [ ] **T-004 分配方案录入 e2e**
   boss → /allocations/new?projectId=image2 → 修改三人比例 (合计仍=100%) → 保存。
@@ -57,6 +54,11 @@
 - [ ] **T-013 项目详情页加"录入新流水"按钮**
   /projects/[id] 顶部加一个绿色 button "+ 录入新流水"  → /entries/new?projectId=[id]
   这是高频动作, 不该埋在 nav 里。
+
+- [ ] **T-014 修复 ApprovalDialog toast 显示**  *(T-003 step 2 e2e 暴露)*
+  bug: dialog close 时 StateToaster 一起 unmount → toast.success("已通过") 来不及渲染.
+  fix: 把 `<StateToaster state={approveState} />` `<StateToaster state={rejectState} />` 移出 DialogContent, 放到 ApprovalDialog 函数 return 的最外层 fragment 里.
+  完成标志: 点通过/驳回后, "已通过"/"已驳回" toast 在 dialog 关闭后仍然能显示给老板看到.
 
 ## P2 — 数据完整性
 

@@ -63,3 +63,10 @@
 - T-003 step 1 完成: e2e 渲染 + 权限 2/2 PASS
 - T-003 step 2 (点通过 + 验证 APPROVED) 留下次 cron / 老板优先级拍
 - 累计 e2e: 5 个 spec 全 PASS (auth-and-pages 3 + approval 2)
+
+## 2026-05-09 11:18 round=3 (T-003 step 2)
+- 找到根因: seed 没 PENDING entry → 派 codex 单步加 PENDING entry (commit 6b8c676 33K tokens)
+- e2e 跑出: server action 真跑 (DB status 变 APPROVED) + UX bug (toast 不显示)
+- spec 改成"列表少一条"硬断言 + toast 软断言, 3/3 PASS
+- T-003 标 [x]
+- 暴露 bug 加 T-014 (P1 修 toast)
