@@ -19,10 +19,13 @@
   - [x] step 5: partner-a 登录 + /me + /projects + /entries/new 全 < 500 + 0 客户端报错
   - [x] e2e 设施沉淀: Playwright + 3 个 spec (e2e/auth-and-pages.spec.ts), `pnpm e2e` 任何时候可重跑
 
-- [ ] **T-002 录入新流水 e2e**
+- [ ] **T-002 录入新流水 e2e**  *(2026-05-09 step 1 [x], step 2 WIP)*
   用 partner-a 登录 → /entries/new → 填项目=image2, 类型=支出, 金额=88.50, 描述="测试一笔", 时间=今天, 上传任一图片 → 提交。
   期望: redirect 到 /projects/[image2-id], Toast 提示"已提交,等待审核", 该笔在流水列表里 PENDING 状态显示。
-  跑通 + 修任何 bug。
+
+  ### Steps progress
+  - [x] step 1: e2e spec 框架就位 — partner-a 登录 → /entries/new 渲染 OK + 点 select 选 image2/支出 + fill 金额/描述 + 上传 PNG buffer
+  - [ ] step 2: 提交后未 redirect — 客户端 form 没真提交 (server log 无 createEntry 事件). 怀疑 react-hook-form `register("evidence")` 跟 playwright `setInputFiles` 不直接同步 / 或 occurredAt date input 默认值没注入. 下次 cron debug. spec 当前 test.skip 暂存. 见 e2e/entry-create.spec.ts
 
 - [ ] **T-003 老板审核 e2e**  *(2026-05-09 step 1 已完成)*
   用 boss 登录 → /approvals → 看到 T-002 录入的待审 → 点查看 → Dialog 显示金额+图片+描述 → 点"通过"。
