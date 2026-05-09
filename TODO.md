@@ -57,12 +57,12 @@
 
 ## P2 — 数据完整性
 
-- [ ] **T-020 反向冲销 e2e + UI**  *(2026-05-09 step 1 [x] reverseEntryAction 写完, step 2 UI + e2e 待下次)*
+- [ ] **T-020 反向冲销 e2e + UI**  *(2026-05-09 step 1+2 [x], step 3 真实点击 WIP — 跟 T-004 类似 form 撞墙)*
 
   ### Steps progress
-  - [x] step 1: server action `reverseEntryAction` 写好 (commit b7fe77d), 业务逻辑: OWNER only, 仅 APPROVED 可冲销, transaction 改 VOIDED + 建反向条 + LedgerEvent
-  - [ ] step 2: UI — 在 entry 详情 / 项目流水 row 加 "反向冲销" 按钮 (OWNER only, APPROVED entry only) + Dialog 输入原因 + 接 reverseEntryAction
-  - [ ] step 3: e2e 验证
+  - [x] step 1: reverseEntryAction server action (commit b7fe77d)
+  - [x] step 2: UI — EntryRow 加 isOwner prop + "反向冲销" 按钮 (OWNER + APPROVED only) + Dialog (commit 4b28718). e2e smoke 2/2 PASS (按钮可见 / 非 OWNER 看不到).
+  - [ ] step 3: 真实点击冲销 → 服务端没收到 (button count 不变), 跟 T-004 同根 (React 19 form action + useActionState 在 Dialog 内可能有 quirk). 老板浏览器试 + 拍优先级.
 
 - [ ] **T-021 LedgerEvent 时间线展示**
   /projects/[id]/[entryId] 单条详情页 (新建路由) 显示该 entry 所有 LedgerEvent (创建 / 审核 / 驳回 / 冲销) 时间线。
