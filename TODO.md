@@ -56,9 +56,7 @@
   /approvals 无待审显示 "审核待办空了"
   /me 无数据显示 "等老板审核第一笔录入后这里会有曲线"
 
-- [ ] **T-013 项目详情页加"录入新流水"按钮**
-  /projects/[id] 顶部加一个绿色 button "+ 录入新流水"  → /entries/new?projectId=[id]
-  这是高频动作, 不该埋在 nav 里。
+- [x] **T-013 项目详情页加"录入新流水"按钮**  *(2026-05-09 verify 已实现, src/app/(app)/projects/[id]/page.tsx line 167 有 + 录入新流水 Link)*
 
 - [x] **T-014 修复 ApprovalDialog toast 显示**  *(2026-05-09 完成, PR #10)*
 
@@ -66,8 +64,8 @@
   公网 http://192.241.137.190:3002/projects 未登录 redirect 时, callbackUrl 指向 localhost:3002 而不是 192.241.137.190. 用户登录后会跳错地方.
   跟 T-001 step 1 trustHost 类似但是 callbackUrl 是另一条路径. 排查方向: middleware.ts `req.nextUrl.href` 在 NextAuth wrap 后是不是还指 localhost.
 
-- [ ] **T-016 new-entry-form 用 react-hook-form Controller 包 base-ui Select**  *(2026-05-09 T-002 step 2 暴露)*
-  bug: `<Select name="projectId">` 和 `<Select name="type">` 没用 Controller, base-ui Select 的 onValueChange 不触发 RHF register 的 change → RHF state 始终空 → trigger 校验 fail. 不光影响 e2e, 浏览器场景 RHF state 也错. 派 codex 用 `<Controller name="projectId" control={control} render={({field}) => <Select onValueChange={field.onChange} value={field.value}>` 包.
+- [ ] **T-016 T-002 e2e 提交 root cause 重新定位**  *(2026-05-09 dengche 看代码后修正)*
+  原假设 (Select 没用 Controller) 不成立 — 看 src/app/(app)/entries/new/new-entry-form.tsx line 200-209, Select 的 `onValueChange` 已经手动调 `setValue("projectId", ...)`, RHF state 应该是同步的. 真因待查方向: (1) evidence FileList 通过 `register` 是否真注入 RHF state (zod custom<FileList> refine 校验); (2) form action 内部 `validateEvidenceFile(formData)` vs `trigger()` 顺序; (3) 老板浏览器手动试一次确认是 e2e 写法问题还是真业务 bug.
 
 ## P2 — 数据完整性
 
