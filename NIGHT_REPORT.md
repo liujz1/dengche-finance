@@ -213,3 +213,10 @@
 - step 1 server actions 完成 (codex 22K tokens, commit 272f2ab)
 - tsc 0 error
 - step 2-5 (UI pages + nav + e2e) 待下次 cron
+
+## 2026-05-09 14:18 round=19 (T-040 step 2-5 一波完)
+- 老板说 cron 太慢, 不等 cron 直接连续干
+- T-040 step 2-5: codex 一波单步写完 4 个 page + nav, build PASS
+- e2e admin-users.spec.ts 3/3 PASS (列表/权限/nav)
+- T-040 整体 [x]
+- 累计 [x]: 14
