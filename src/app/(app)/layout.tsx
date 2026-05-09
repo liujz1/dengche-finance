@@ -16,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { prisma } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
 function roleLabel(role: string) {
@@ -37,6 +38,11 @@ export default async function AppLayout({
     redirect("/login");
   }
 
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { name: true, role: true },
+  });
+  const displayName = dbUser?.name ?? session.user.name ?? null;
   const isOwner = session.user.role === "OWNER";
   const navItems = [
     { href: "/projects", label: "项目", visible: true },
@@ -82,11 +88,11 @@ export default async function AppLayout({
               )}
             >
               <Avatar size="sm">
-                <AvatarFallback>{userInitial(session.user.name)}</AvatarFallback>
+                <AvatarFallback>{userInitial(displayName)}</AvatarFallback>
               </Avatar>
               <span className="hidden min-w-0 flex-col items-start leading-tight sm:flex">
                 <span className="max-w-24 truncate text-sm font-medium">
-                  {session.user.name || "未命名用户"}
+                  {displayName || "未命名用户"}
                 </span>
               </span>
               <Badge variant={isOwner ? "default" : "secondary"}>
@@ -98,7 +104,7 @@ export default async function AppLayout({
                 <DropdownMenuLabel>
                   <div className="flex flex-col gap-1">
                     <span className="text-sm text-foreground">
-                      {session.user.name || "未命名用户"}
+                      {displayName || "未命名用户"}
                     </span>
                     <span>{roleLabel(session.user.role)}</span>
                   </div>
