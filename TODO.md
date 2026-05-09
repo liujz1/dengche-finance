@@ -62,7 +62,7 @@
 
 - [x] **T-014 修复 ApprovalDialog toast 显示**  *(2026-05-09 完成, PR #10)*
 
-- [ ] **T-015 服务器 callbackUrl 残留 localhost**  *(2026-05-09 fork B 实测发现)*
+- [x] **T-015 服务器 callbackUrl 残留 localhost**  *(2026-05-09 fork B 实测发现)*
   公网 http://192.241.137.190:3002/projects 未登录 redirect 时, callbackUrl 指向 localhost:3002 而不是 192.241.137.190. 用户登录后会跳错地方.
   跟 T-001 step 1 trustHost 类似但是 callbackUrl 是另一条路径. 排查方向: middleware.ts `req.nextUrl.href` 在 NextAuth wrap 后是不是还指 localhost.
 
