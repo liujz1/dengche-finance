@@ -70,3 +70,49 @@
 - 怀疑 react-hook-form register("evidence") 跟 playwright setInputFiles 不直接同步, 或 occurredAt date 默认值没注入
 - spec 暂 test.skip 标存. 下次 cron debug
 - T-002 step 1 [x] step 2 [ ]
+
+---
+
+## 老板早上回来看一眼总结 (2026-05-09 12:00)
+
+### 业务进度
+- 全站 9 个页面无 runtime 报错（5 个 Playwright e2e 自动验证 PASS）
+- 老板审核功能跑通：boss 登录 → /approvals → 点查看 → 点通过 → 列表少一条 + DB 实测变 APPROVED
+- 录入功能（partner-a 录新流水）e2e 待修——form 提交在 Playwright 里没 work（react-hook-form 跟 setInputFiles 兼容问题），业务功能本身可能是好的，需要老板浏览器试一次确认
+- 分配方案（T-004）/ 趋势曲线（T-005）还没测
+
+### 基建进度
+- 服务器（ops-nyc1）跑得稳：服务 active，uptime 12 小时，内存只用了 800 MB / 8 GB（绰绰有余）
+- 自动部署：你/我改完代码 push → Actions 自动测 → 自动 SSH 部署到服务器（一晚上跑了 5 次，全成功）
+- 网址：http://192.241.137.190:3002/login
+- 私钥不在仓库不在服务器，只在 GitHub 加密保险箱
+
+### 今天发现的真 bug
+- **审核 toast 看不到**：老板点"通过"后业务真生效（DB 已 APPROVED），但"已通过"提示没显示出来。已加 P1（T-014），dengche 现在在修
+- **录入 e2e 卡**：自动测试模拟录入提交后页面没跳转，但业务后端可能没问题，要老板浏览器手动录一笔确认
+- **登录 callbackUrl 还指向 localhost**：服务器版的 /projects 未登录跳转，callbackUrl 里写的是 `localhost:3002` 而不是 `192.241.137.190`——登录完会跳错地方。需要修（小问题，不阻塞）
+
+### PR 现状
+- 一晚上+一上午开了 9 个 PR，merge 了 7 个进 main
+- PR #8 卡 OPEN（"T-003 完成 + 加 T-014"那个）——跟 PR #9 改了同一个文件冲突。PR #8 的内容（T-003 step 2 已实测过，T-014 已发现）被 PR #9 的版本覆盖了，需要 dengche 手动 rebase 或者直接关掉 PR #8 + 内容补到下个 PR
+
+### 本机已清干净
+- 杀了本机 next-server / pnpm start / watchdog 共 3 个进程
+- 释放约 350 MB 内存（杀前 unused 225 MB → 杀后 unused 641 MB）
+- 服务器接管所有运行，本机只留代码仓库 + Playwright（e2e 跑用）
+
+### 你今天可以做的
+- 打开 http://192.241.137.190:3002/login 登 partner-a 录一笔流水试试（很可能 e2e 卡的"录入提交"在真浏览器里能 work，能帮我确认是 e2e 写法问题还是真 bug）
+- 用 boss 登录 /approvals 审一下你录的（看看 toast 显示问题是不是真的——dengche 修完后再看一遍）
+- 任何不对的截图给 dengche
+
+## 2026-05-09 12:08 round=5 (收尾 — agent team)
+- **agent team 派 3 路**:
+  - fork A 调研 react-hook-form + Playwright file upload → 找到根因 (occurredAt + Select Controller)
+  - fork B 本机清理 (杀 watchdog/server, 释放 416 MB) + 服务器健康检查 (active, 公网 200) + 写早上总结
+  - dengche 修 T-014 toast bug (PR #10, codex 单步 23K tokens)
+- **暴露的真业务 bug** (新加 task):
+  - T-015 服务器版 callbackUrl 残留 localhost (登录后跳错地方)
+  - T-016 new-entry-form Select 没用 RHF Controller (RHF state 不同步)
+- **PR #8 关闭** (T-003 step 2 e2e + T-014 entry 跟 PR #9 冲突卡 OPEN, 内容已通过 PR #10 等替代修)
+- **本机已清干净**, 服务器接管全部业务流量

@@ -17,7 +17,7 @@ async function loginAsPartnerA(page: any) {
   await page.waitForURL(/\/(projects|me)/, { timeout: 10_000 });
 }
 
-test.skip("T-002: partner-a 录入新流水 e2e (WIP — 提交后未 redirect, 待 debug react-hook-form/file upload 兼容)", async ({ page }) => {
+test.skip("T-002: partner-a 录入新流水 e2e (WIP — 真因: base-ui Select 没用 Controller, RHF state 不同步; 已应用 occurredAt + dispatchEvent fix; 需派 codex 改 new-entry-form.tsx 用 Controller 包 Select)", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("pageerror", (e) => consoleErrors.push(`pageerror: ${e.message}`));
   page.on("console", (msg) => {
@@ -40,12 +40,21 @@ test.skip("T-002: partner-a 录入新流水 e2e (WIP — 提交后未 redirect, 
   await page.getByLabel(/^金额/).fill("88.50");
   await page.getByLabel(/描述/).fill("e2e 测试一笔");
 
-  // 上传图片 (PNG buffer)
-  await page.locator('input[type="file"]').setInputFiles({
+  // 上传图片 (PNG buffer) + 显式 dispatch change 兜底 RHF
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.setInputFiles({
     name: "test-evidence.png",
     mimeType: "image/png",
     buffer: TINY_PNG_BUFFER,
   });
+  await fileInput.dispatchEvent("change");
+
+  // 显式 fill occurredAt — 解 react-hook-form defaultValues 时序竞态
+  // (zod schema occurredAt: z.string().min(1) 会 reject 空字符串)
+  const today = new Date().toISOString().slice(0, 10);
+  await page.locator("input#occurredAt").fill(today);
+
+  await page.waitForTimeout(200); // 等 RHF state 同步
 
   // 提交
   await page.getByRole("button", { name: "提交审核" }).click();
