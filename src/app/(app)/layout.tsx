@@ -43,6 +43,7 @@ export default async function AppLayout({
     { href: "/me", label: "我的回报", visible: true },
     { href: "/approvals", label: "审核", visible: isOwner },
     { href: "/allocations", label: "分配", visible: isOwner },
+    { href: "/admin/users", label: "用户", visible: isOwner },
   ];
 
   return (
