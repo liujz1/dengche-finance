@@ -42,6 +42,11 @@ const rejectEntrySchema = z.object({
     .max(200, "原因最多 200 个字"),
 });
 
+const reverseEntrySchema = z.object({
+  entryId: entryIdSchema,
+  reason: z.string().trim().min(1, "原因不能为空").max(200, "原因最多 200 个字"),
+});
+
 export type CreateEntryState = {
   success?: boolean;
   entryId?: string;
@@ -50,6 +55,11 @@ export type CreateEntryState = {
 };
 
 export type EntryApprovalState = {
+  success?: boolean;
+  error?: string;
+};
+
+export type ReverseEntryState = {
   success?: boolean;
   error?: string;
 };
@@ -466,6 +476,105 @@ export async function rejectEntryAction(
 
   revalidatePath("/approvals");
   revalidatePath(`/projects/${existingEntry.projectId}`);
+
+  return { success: true };
+}
+
+export async function reverseEntryAction(
+  _prevState: ReverseEntryState,
+  formData: FormData
+): Promise<ReverseEntryState> {
+  const session = await auth();
+
+  if (!session?.user?.id || session.user.role !== "OWNER") {
+    return { error: "只有老板可以反向冲销" };
+  }
+
+  const parsed = reverseEntrySchema.safeParse({
+    entryId: formData.get("entryId"),
+    reason: formData.get("reason"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "请检查输入" };
+  }
+
+  const original = await prisma.entry.findUnique({
+    where: {
+      id: parsed.data.entryId,
+    },
+    select: {
+      id: true,
+      projectId: true,
+      type: true,
+      amountCents: true,
+      description: true,
+      status: true,
+      reversedFromId: true,
+    },
+  });
+
+  if (!original) {
+    return { error: "流水不存在" };
+  }
+
+  if (original.status !== "APPROVED") {
+    return { error: "只有已审核流水可以冲销" };
+  }
+
+  if (original.reversedFromId) {
+    return { error: "已经是反向条, 不能再冲销" };
+  }
+
+  const now = new Date();
+  const reverseId = createCuidLikeId();
+
+  try {
+    await prisma.$transaction([
+      prisma.entry.update({
+        where: {
+          id: original.id,
+        },
+        data: {
+          status: "VOIDED",
+        },
+      }),
+      prisma.entry.create({
+        data: {
+          id: reverseId,
+          projectId: original.projectId,
+          type: original.type,
+          amountCents: -original.amountCents,
+          description: `[冲销] ${original.description} — ${parsed.data.reason}`,
+          occurredAt: now,
+          status: "APPROVED",
+          createdById: session.user.id,
+          approvedById: session.user.id,
+          approvedAt: now,
+          reversedFromId: original.id,
+          createdAt: now,
+        },
+      }),
+      prisma.ledgerEvent.create({
+        data: {
+          entryId: original.id,
+          eventType: "ENTRY_REVERSED",
+          payloadJson: JSON.stringify({
+            originalId: original.id,
+            reverseId,
+            reason: parsed.data.reason,
+          }),
+          actorId: session.user.id,
+        },
+      }),
+    ]);
+  } catch (error) {
+    console.error("reverse entry failed", error);
+    return { error: "反向冲销失败" };
+  }
+
+  revalidatePath(`/projects/${original.projectId}`);
+  revalidatePath("/approvals");
 
   return { success: true };
 }

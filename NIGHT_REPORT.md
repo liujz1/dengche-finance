@@ -161,3 +161,14 @@
 - T-005 partner-a /me 趋势曲线 e2e 一遍过 (370ms)
 - T-004 标 [?] (cron 跳过, 老板浏览器手动试 + 拍优先级)
 - 累计 [x]: T-001/T-002/T-003/T-005 + T-010-T-016 = 11 个
+
+## 2026-05-09 14:51:46 round=9
+- task dispatched: T-020
+- system unused: 5412 MB
+- (dengche 干完追加结果)
+
+## 2026-05-09 13:35 round=14 (T-020 step 1 server action)
+- T-020 cron dispatch
+- codex 单步 49.9K tokens 写 reverseEntryAction 完成 (commit b7fe77d)
+- build PASS
+- step 2 UI + step 3 e2e 留下次 cron
