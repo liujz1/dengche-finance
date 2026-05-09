@@ -197,3 +197,20 @@ server {
 | `/allocations` | 分配方案列表 | OWNER |
 | `/allocations/new` | 新建分配方案 | OWNER |
 | `/me` | 合伙人投入、应得和趋势 | PARTNER |
+
+## 数据备份
+
+使用 `scripts/backup.sh` 备份 SQLite 数据库和 `uploads/` 附件目录。默认备份到项目目录下的 `backups/`，也可以通过 `BACKUP_DIR` 环境变量改为其他路径。
+
+```bash
+bash scripts/backup.sh
+BACKUP_DIR=/data/dengche-backups bash scripts/backup.sh
+```
+
+cron 例子：每天凌晨 3 点执行一次。
+
+```cron
+0 3 * * * cd /root/dengche-finance && bash scripts/backup.sh >> /var/log/dengche-backup.log 2>&1
+```
+
+脚本会自动清理 7 天前的旧备份。
