@@ -22,3 +22,30 @@ jobs:
       - run: npx prisma generate
       - run: npx tsc --noEmit
       - run: pnpm build
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH deploy to ops-nyc1
+        env:
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          HOST: ${{ secrets.SERVER_HOST }}
+          USER: ${{ secrets.SERVER_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$USER@$HOST" 'set -e
+            cd /root/dengche-finance
+            git pull origin main
+            pnpm install --frozen-lockfile
+            npx prisma generate
+            npx prisma migrate deploy
+            pnpm build
+            systemctl restart dengche-finance
+            sleep 3
+            systemctl is-active dengche-finance
+          '
