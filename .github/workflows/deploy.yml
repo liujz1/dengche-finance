@@ -1,0 +1,35 @@
+name: Deploy to ops-nyc1
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync code to server (excludes runtime data)
+        uses: easingthemes/ssh-deploy@v5.1.0
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          REMOTE_HOST: ${{ secrets.SSH_HOST }}
+          REMOTE_USER: ${{ secrets.SSH_USER }}
+          TARGET: /opt/ledger
+          ARGS: "-rltgoDzvO --delete"
+          EXCLUDE: "/node_modules/, /.next/, /dev.db, /uploads/, /.git/, /.github/"
+
+      - name: Rebuild and restart container
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/ledger
+            docker compose build ledger
+            docker compose up -d
+            sleep 5
+            docker ps --filter name=ledger --format "{{.Status}}"

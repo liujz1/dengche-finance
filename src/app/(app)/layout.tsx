@@ -111,6 +111,10 @@ export default async function AppLayout({
                 </DropdownMenuLabel>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
+              <DropdownMenuItem render={<Link href="/me" />}>
+                我的回报
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem render={<div />}>
                 <form
                   action={async () => {

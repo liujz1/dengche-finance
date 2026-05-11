@@ -58,7 +58,11 @@
       "@prisma/client",
       "@prisma/engines",
       "better-sqlite3",
-      "prisma"
+      "esbuild",
+      "msw",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
     ]
   }
 }
