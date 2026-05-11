@@ -38,6 +38,7 @@ export type EntryRowEntry = {
   description: string;
   occurredAt: Date;
   status: EntryStatus;
+  reversedFromId: string | null;
   createdBy: {
     name: string;
   };
@@ -208,7 +209,7 @@ export function EntryRow({
   isOwner?: boolean;
 }) {
   const displayAmount = signedAmount(entry);
-  const canReverse = entry.status === "APPROVED" && isOwner;
+  const canReverse = entry.status === "APPROVED" && isOwner && !entry.reversedFromId;
 
   return (
     <Dialog>
