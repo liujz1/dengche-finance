@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef } from "react";
+import { type FormEvent, useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { toast } from "sonner";
 
@@ -30,6 +30,32 @@ type EditUserFormProps = {
 };
 
 const initialState: EditUserState = {};
+const passwordStrengthMessage =
+  "密码至少 8 位，且不能是纯数字或常见弱密码";
+const commonWeakPasswords = new Set([
+  "123456",
+  "12345678",
+  "123456789",
+  "1234567890",
+  "111111",
+  "000000",
+  "123123",
+  "abc123",
+  "password",
+  "password123",
+  "qwerty",
+  "qwerty123",
+  "admin",
+  "letmein",
+]);
+
+function isStrongPassword(password: string) {
+  return (
+    password.length >= 8 &&
+    !/^\d+$/.test(password) &&
+    !commonWeakPasswords.has(password.trim().toLowerCase())
+  );
+}
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -60,8 +86,20 @@ export function EditUserForm({ user }: EditUserFormProps) {
     }
   }, [state.success, router]);
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    const newPassword = new FormData(event.currentTarget).get("newPassword");
+    if (
+      typeof newPassword === "string" &&
+      newPassword.length > 0 &&
+      !isStrongPassword(newPassword)
+    ) {
+      event.preventDefault();
+      toast.error(passwordStrengthMessage);
+    }
+  }
+
   return (
-    <form action={formAction}>
+    <form action={formAction} onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
           <CardTitle>用户资料</CardTitle>
@@ -81,8 +119,13 @@ export function EditUserForm({ user }: EditUserFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="newPassword">新密码</Label>
-            <Input id="newPassword" name="newPassword" type="password" />
+            <Label htmlFor="newPassword">重置密码</Label>
+            <Input
+              id="newPassword"
+              name="newPassword"
+              type="password"
+              minLength={8}
+            />
             <p className="text-xs text-muted-foreground">留空不改</p>
           </div>
 

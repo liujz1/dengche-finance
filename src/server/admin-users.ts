@@ -15,20 +15,48 @@ export type AddPartnerState = {
 };
 export type EditUserState = { success?: boolean; error?: string };
 
+const passwordStrengthMessage =
+  "密码至少 8 位，且不能是纯数字或常见弱密码";
+const commonWeakPasswords = new Set([
+  "123456",
+  "12345678",
+  "123456789",
+  "1234567890",
+  "111111",
+  "000000",
+  "123123",
+  "abc123",
+  "password",
+  "password123",
+  "qwerty",
+  "qwerty123",
+  "admin",
+  "letmein",
+]);
+
+const passwordSchema = z
+  .string()
+  .min(8, passwordStrengthMessage)
+  .refine(
+    (password) =>
+      !/^\d+$/.test(password) &&
+      !commonWeakPasswords.has(password.trim().toLowerCase()),
+    passwordStrengthMessage
+  );
+
 const addPartnerSchema = z.object({
   email: z.string().trim().email("邮箱格式不对"),
   name: z.string().trim().min(1, "姓名不能为空").max(50, "姓名最多 50 个字"),
-  password: z.string().min(6, "密码最少 6 个字符"),
+  password: passwordSchema,
 });
 
 const editUserSchema = z.object({
   id: z.string().min(1, "用户不存在"),
   name: z.string().trim().min(1, "姓名不能为空").max(50, "姓名最多 50 个字"),
-  newPassword: z
-    .string()
-    .min(6, "新密码最少 6 个字符")
-    .optional()
-    .or(z.literal("")),
+  newPassword: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    passwordSchema.optional()
+  ),
 });
 
 export async function addPartnerAction(
@@ -101,7 +129,7 @@ export async function editUserAction(
   const data: { name: string; passwordHash?: string } = {
     name: parsed.data.name,
   };
-  if (parsed.data.newPassword && parsed.data.newPassword.length > 0) {
+  if (parsed.data.newPassword) {
     data.passwordHash = await hash(parsed.data.newPassword, 10);
   }
 

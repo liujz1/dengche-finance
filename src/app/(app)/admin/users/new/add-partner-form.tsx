@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef } from "react";
+import { type FormEvent, useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { toast } from "sonner";
 
@@ -23,6 +23,32 @@ import {
 } from "@/server/admin-users";
 
 const initialState: AddPartnerState = {};
+const passwordStrengthMessage =
+  "密码至少 8 位，且不能是纯数字或常见弱密码";
+const commonWeakPasswords = new Set([
+  "123456",
+  "12345678",
+  "123456789",
+  "1234567890",
+  "111111",
+  "000000",
+  "123123",
+  "abc123",
+  "password",
+  "password123",
+  "qwerty",
+  "qwerty123",
+  "admin",
+  "letmein",
+]);
+
+function isStrongPassword(password: string) {
+  return (
+    password.length >= 8 &&
+    !/^\d+$/.test(password) &&
+    !commonWeakPasswords.has(password.trim().toLowerCase())
+  );
+}
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -53,8 +79,16 @@ export function AddPartnerForm() {
     }
   }, [state.success, router]);
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    const password = new FormData(event.currentTarget).get("password");
+    if (typeof password !== "string" || !isStrongPassword(password)) {
+      event.preventDefault();
+      toast.error(passwordStrengthMessage);
+    }
+  }
+
   return (
-    <form action={formAction}>
+    <form action={formAction} onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
           <CardTitle>合伙人资料</CardTitle>
@@ -72,7 +106,13 @@ export function AddPartnerForm() {
 
           <div className="space-y-2">
             <Label htmlFor="password">密码</Label>
-            <Input id="password" name="password" type="password" required />
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              minLength={8}
+              required
+            />
           </div>
 
           {state.error ? (
