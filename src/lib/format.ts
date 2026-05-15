@@ -8,6 +8,7 @@ const yuanFormatter = new Intl.NumberFormat("zh-CN", {
 });
 
 const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: "Asia/Shanghai",
   year: "numeric",
   month: "2-digit",
   day: "2-digit",

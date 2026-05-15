@@ -132,7 +132,7 @@ ALL_DONE = true (2026-05-09 18:30) — 全部 21 个 task [x] (P0/P1/P2/P3 + T-0
   **不要碰**: server/entries.ts 的审核逻辑 / Dialog 组件本身
   **验收**: dev server 起, 打开 /approvals 点"查看", 不滚动就能看到"通过/驳回"按钮; e2e approval.spec.ts 仍 PASS。
 
-- [!] **T-201 时间显示差 8 小时 — formatDate 钉死 Asia/Shanghai** [P0]
+- [x] **T-201 时间显示差 8 小时 — formatDate 钉死 Asia/Shanghai** [P0] — 2026-05-15 完成
   **背景**: 老板截图实证——审核列表显示 "11:17", 同一条详情显示 "19:17", 差 8 小时。
   **改哪**: `src/lib/format.ts:10` formatDate
   **怎么改**: `Intl.DateTimeFormat("zh-CN", {...})` 显式加 `timeZone: "Asia/Shanghai"`; 全站(列表+详情, server+client)统一走这个函数。
