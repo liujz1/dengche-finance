@@ -1,6 +1,8 @@
 services:
   ledger:
-    build: .
+    build:
+      context: .
+      target: runner
     ports:
       - "3000:3000"
     volumes:
@@ -11,3 +13,13 @@ services:
       AUTH_SECRET: "changeme"
       AUTH_URL: "http://localhost:3000"
     restart: unless-stopped
+
+  migrate:
+    build:
+      context: .
+      target: migrator
+    volumes:
+      - ./dev.db:/app/dev.db
+    environment:
+      DATABASE_URL: "file:/app/dev.db"
+    restart: "no"

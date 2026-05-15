@@ -28,8 +28,10 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -eu
             cd /opt/ledger
-            docker compose build ledger
-            docker compose up -d
+            docker compose build ledger migrate
+            docker compose run --rm migrate
+            docker compose up -d ledger
             sleep 5
-            docker ps --filter name=ledger --format "{{.Status}}"
+            docker compose ps ledger

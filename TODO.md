@@ -202,7 +202,7 @@ ALL_DONE = true (2026-05-09 18:30) — 全部 21 个 task [x] (P0/P1/P2/P3 + T-0
   **注意**: 这是本批唯一允许动 prisma schema 的 task, 改完要 `pnpm prisma migrate dev`。
   **验收**: 项目详情能看到项目创建/分配方案事件; `pnpm build` 绿。
 
-- [!] **T-215 部署流程补 prisma migrate deploy** [P0·阻塞]
+- [x] **T-215 部署流程补 prisma migrate deploy** [P0·阻塞] — 2026-05-15 完成
   **背景**: 部署流程（deploy.yml + Dockerfile + docker-compose.yml）没有应用 prisma migration 的步骤。T-208 加了新 migration，不修则部署后生产 DB 无新字段→运行时报错。这是部署流程结构缺陷。
   **怎么改**: 让每次部署自动对生产 dev.db 跑 `prisma migrate deploy`（先迁移后起服务、不丢数据、失败非静默）。改 Dockerfile/docker-compose/deploy.yml 中需要的。
   **验收**: 配置语法正确、逻辑自洽; push 后 Actions 部署日志能看到迁移成功。

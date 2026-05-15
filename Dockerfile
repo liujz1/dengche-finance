@@ -11,13 +11,17 @@ FROM base AS deps
 
 RUN apk add --no-cache python3 make g++
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml prisma.config.ts ./
 COPY prisma ./prisma
 RUN pnpm install --frozen-lockfile --ignore-scripts
 # pnpm 11 strict mode blocks postinstall — manually node-gyp the native module
 RUN cd node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3 \
     && npx --yes node-gyp rebuild --release
 RUN pnpm exec prisma generate
+
+FROM deps AS migrator
+
+CMD ["pnpm", "exec", "prisma", "migrate", "deploy"]
 
 FROM base AS builder
 
