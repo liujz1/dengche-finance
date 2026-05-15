@@ -213,7 +213,7 @@ ALL_DONE = true (2026-05-09 18:30) — 全部 21 个 task [x] (P0/P1/P2/P3 + T-0
   **怎么改**: 统一——删 base64, 用 `encodeURIComponent(r2Key)`; 确保 API route 的校验与之匹配。
   **验收**: 凭证图片能正常加载显示。
 
-- [!] **T-210 用户管理页时间格式复用共享 formatDate** [P2]
+- [x] **T-210 用户管理页时间格式复用共享 formatDate** [P2] — 2026-05-15 完成
   **改哪**: `src/app/(app)/admin/users/page.tsx:20`
   **怎么改**: 删局部 `toLocaleString` formatter, 改用 `src/lib/format.ts` 的 formatDate(T-201 修好后已固定时区)。
   **验收**: 用户创建时间格式与全站一致。
