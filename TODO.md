@@ -145,7 +145,7 @@ ALL_DONE = true (2026-05-09 18:30) — 全部 21 个 task [x] (P0/P1/P2/P3 + T-0
   **怎么改**: 设一个合理上限(建议单笔 ≤ 1 亿元 = 10_000_000_000 分), 客户端 + Server Action 双层校验; 转换后检查 `Number.isSafeInteger` 且在 Prisma Int (32位, ±21.4亿) 范围内 — 若上限超 Int 范围则上限取 Int 安全值。
   **验收**: 录入超大金额被拦截并提示中文错误; 正常金额不受影响; e2e entry-create.spec.ts PASS。
 
-- [!] **T-203 反向冲销 — reversal entry 补写自己的 LedgerEvent** [P0]
+- [x] **T-203 反向冲销 — reversal entry 补写自己的 LedgerEvent** [P0] — 2026-05-15 完成
   **背景**: 信任三锚之 immutable log。冲销时只给原流水写 `ENTRY_REVERSED`, 新建的反向流水没有任何事件 → 审计链漏一半。
   **改哪**: `src/server/entries.ts:558` reverseEntry 事务
   **怎么改**: 同一事务内为新建的 reversal entry 也写一条 LedgerEvent(eventType 用 `ENTRY_CREATED` 或新增 `ENTRY_REVERSAL_CREATED`, payload 含完整快照 + 指向原条 ID)。

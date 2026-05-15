@@ -538,6 +538,21 @@ export async function reverseEntryAction(
 
   const now = new Date();
   const reverseId = createCuidLikeId();
+  const reversalSnapshot = {
+    id: reverseId,
+    projectId: original.projectId,
+    type: original.type,
+    amountCents: -original.amountCents,
+    description: `[冲销] ${original.description} — ${parsed.data.reason}`,
+    occurredAt: now,
+    status: EntryStatus.APPROVED,
+    createdById: session.user.id,
+    approvedById: session.user.id,
+    approvedAt: now,
+    rejectedReason: null,
+    reversedFromId: original.id,
+    createdAt: now,
+  };
 
   try {
     await prisma.$transaction([
@@ -550,19 +565,18 @@ export async function reverseEntryAction(
         },
       }),
       prisma.entry.create({
+        data: reversalSnapshot,
+      }),
+      prisma.ledgerEvent.create({
         data: {
-          id: reverseId,
-          projectId: original.projectId,
-          type: original.type,
-          amountCents: -original.amountCents,
-          description: `[冲销] ${original.description} — ${parsed.data.reason}`,
-          occurredAt: now,
-          status: "APPROVED",
-          createdById: session.user.id,
-          approvedById: session.user.id,
-          approvedAt: now,
-          reversedFromId: original.id,
-          createdAt: now,
+          entryId: reversalSnapshot.id,
+          eventType: "ENTRY_CREATED",
+          payloadJson: JSON.stringify({
+            ...reversalSnapshot,
+            originalEntryId: original.id,
+            reversalReason: parsed.data.reason,
+          }),
+          actorId: session.user.id,
         },
       }),
       prisma.ledgerEvent.create({
