@@ -167,7 +167,7 @@ export function ApprovalDialog({ entry }: { entry: ApprovalEntry }) {
         <DialogTrigger render={<Button variant="outline" size="sm" />}>
           查看
         </DialogTrigger>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+        <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
           <DialogTitle className="pr-8">审核流水</DialogTitle>
           <DialogDescription>
@@ -266,7 +266,7 @@ export function ApprovalDialog({ entry }: { entry: ApprovalEntry }) {
             )}
           </section>
 
-          <div className="grid gap-3 border-t pt-4 lg:grid-cols-[1fr_2fr]">
+          <div className="sticky bottom-0 grid gap-3 border-t bg-background px-1 py-4 lg:grid-cols-[1fr_2fr]">
             <form action={approveAction} className="flex items-end">
               <input type="hidden" name="entryId" value={entry.id} />
               <ApprovalSubmitButton />
