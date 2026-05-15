@@ -158,7 +158,7 @@ ALL_DONE = true (2026-05-09 18:30) — 全部 21 个 task [x] (P0/P1/P2/P3 + T-0
   **约束**: 不碰 prisma schema / 不装新依赖 / 不 push
   **验收**: `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
 
-- [ ] **T-213 修录入/分配表单 useActionState transition 警告** [P1·阻塞e2e]
+- [!] **T-213 修录入/分配表单 useActionState transition 警告** [P1·阻塞e2e]
   **背景**: e2e 跑出 `console.error: An async function with useActionState was called outside of a transition...`。录入流水表单、分配方案表单的 `action={async (formData) => {...formAction(formData)}}` 在 async 函数里直接调 formAction。预存问题。
   **怎么改**: formAction 包进 `startTransition`，或按 React 19/Next 16 正确写法。涉及 new-entry-form.tsx + 分配方案表单。别破坏现有 success redirect 逻辑。
   **约束**: 不碰 prisma schema / 不装新依赖 / 不 push
