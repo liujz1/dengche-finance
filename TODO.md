@@ -176,7 +176,7 @@ ALL_DONE = true (2026-05-09 18:30) — 全部 21 个 task [x] (P0/P1/P2/P3 + T-0
   **怎么改**: 把 `YYYY-MM-DD` 明确解释为上海时区 00:00, 转对应 UTC instant 入库(上海 00:00 = 前一日 UTC 16:00)。两处用同一个 helper。
   **验收**: `npx tsc --noEmit` + `pnpm build` 绿; 录入日期不偏移。
 
-- [!] **T-205 流水审计详情标题金额按类型加负号** [P1]
+- [x] **T-205 流水审计详情标题金额按类型加负号** [P1] — 2026-05-15 完成
   **背景**: 详情头部直接 `formatYuan(entry.amountCents)`, 支出显示成正数, 跟列表"-¥200"对不上。
   **改哪**: `src/app/(app)/projects/[id]/[entryId]/page.tsx:77`
   **怎么改**: 复用统一的 signedAmount 规则(EXPENSE/PROXY_PAY 取负)再 formatYuan。

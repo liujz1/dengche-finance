@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import type { EntryType } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import { formatDate, formatYuan } from "@/lib/format";
 
@@ -27,6 +28,14 @@ const eventBadgeClass: Record<string, string> = {
   ENTRY_REVERSED: "bg-orange-50 text-orange-700 ring-orange-200",
 };
 
+function signedAmount(entry: { type: EntryType; amountCents: number }) {
+  if (entry.type === "EXPENSE" || entry.type === "PROXY_PAY") {
+    return -entry.amountCents;
+  }
+
+  return entry.amountCents;
+}
+
 export default async function EntryAuditPage({
   params,
 }: {
@@ -44,6 +53,7 @@ export default async function EntryAuditPage({
     select: {
       id: true,
       description: true,
+      type: true,
       amountCents: true,
       status: true,
       occurredAt: true,
@@ -74,7 +84,7 @@ export default async function EntryAuditPage({
         <h1 className="text-2xl font-semibold tracking-normal">流水审计时间线</h1>
         <p className="text-sm text-muted-foreground">
           {entry.project.name} · {entry.description} ·{" "}
-          {formatYuan(entry.amountCents)}
+          {formatYuan(signedAmount(entry))}
         </p>
       </div>
 
