@@ -170,7 +170,7 @@ ALL_DONE = true (2026-05-09 18:30) — 全部 21 个 task [x] (P0/P1/P2/P3 + T-0
   **怎么改**: 重构 entry-row.tsx 解嵌套——详情 Dialog 不用整行 trigger，操作列独立在详情 trigger 之外。保留：点行看详情 + 点反向冲销开弹窗。nativeButton 警告也不能回来。
   **验收**: `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿; e2e reverse-entry.spec.ts 跑通。
 
-- [!] **T-204 日期输入按 Asia/Shanghai 解释, 不用服务器本地时区** [P1]
+- [x] **T-204 日期输入按 Asia/Shanghai 解释, 不用服务器本地时区** [P1] — 2026-05-15 完成
   **背景**: 录入日期 / 分配方案生效日期的 `YYYY-MM-DD` 转 Date 时依赖 Node 进程时区。
   **改哪**: `src/server/entries.ts:30` + `src/server/allocations.ts:37`
   **怎么改**: 把 `YYYY-MM-DD` 明确解释为上海时区 00:00, 转对应 UTC instant 入库(上海 00:00 = 前一日 UTC 16:00)。两处用同一个 helper。

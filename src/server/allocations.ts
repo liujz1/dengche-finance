@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { EntryStatus, EntryType, UserRole } from "@/generated/prisma/enums";
+import { parseShanghaiDateInput } from "@/lib/date";
 import { prisma } from "@/lib/db";
 
 type AllocationShareInput = {
@@ -34,7 +35,7 @@ const allocationPlanSchema = z
     effectiveFrom: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "请选择生效时间")
-      .transform((value) => new Date(`${value}T00:00:00.000`))
+      .transform(parseShanghaiDateInput)
       .refine((value) => !Number.isNaN(value.getTime()), "生效时间不合法"),
     note: z
       .string()

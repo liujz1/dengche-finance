@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { EntryStatus, EntryType } from "@/generated/prisma/enums";
+import { parseShanghaiDateInput } from "@/lib/date";
 import { prisma } from "@/lib/db";
 import { saveUploadedFile } from "@/lib/upload";
 
@@ -37,7 +38,7 @@ const entryFormSchema = z.object({
   occurredAt: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "请选择发生时间")
-    .transform((value) => new Date(`${value}T00:00:00.000`))
+    .transform(parseShanghaiDateInput)
     .refine((value) => !Number.isNaN(value.getTime()), "发生时间不合法"),
 });
 
