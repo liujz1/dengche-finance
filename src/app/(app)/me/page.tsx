@@ -115,12 +115,15 @@ function findEffectivePlan(
     ?.find((plan) => plan.effectiveFrom <= occurredAt);
 }
 
-function buildChartData(params: {
+function buildEarningsTimeline(params: {
   entries: ApprovedEntry[];
   plans: AllocationPlan[];
   projectNames: Map<string, string>;
   userId: string;
-}): EarningsChartPoint[] {
+}): {
+  chartData: EarningsChartPoint[];
+  earningsByProjectCents: Map<string, number>;
+} {
   const plansByProject = new Map<string, AllocationPlan[]>();
 
   for (const plan of params.plans) {
@@ -137,16 +140,10 @@ function buildChartData(params: {
     );
   }
 
-  const runningNetProfit = new Map<string, number>();
   const runningEarnings = new Map<string, number>();
   const dailySnapshots = new Map<string, Map<string, number>>();
 
   for (const entry of params.entries) {
-    const nextNetProfit =
-      (runningNetProfit.get(entry.projectId) ?? 0) +
-      signedProfitAmountCents(entry);
-    runningNetProfit.set(entry.projectId, nextNetProfit);
-
     const plan = findEffectivePlan(
       plansByProject,
       entry.projectId,
@@ -158,35 +155,45 @@ function buildChartData(params: {
       continue;
     }
 
+    const earningsDeltaCents = Math.round(
+      (signedProfitAmountCents(entry) * userShare.basisPoints) / 10000
+    );
     runningEarnings.set(
       entry.projectId,
-      Math.round((nextNetProfit * userShare.basisPoints) / 10000)
+      (runningEarnings.get(entry.projectId) ?? 0) + earningsDeltaCents
     );
 
     const dateKey = formatChartDate(entry.occurredAt);
     dailySnapshots.set(dateKey, new Map(runningEarnings));
   }
 
-  return Array.from(dailySnapshots.entries()).map(([date, earningsByProject]) => {
-    const point: EarningsChartPoint = {
-      date,
-      总计: 0,
-    };
+  const chartData = Array.from(dailySnapshots.entries()).map(
+    ([date, earningsByProject]) => {
+      const point: EarningsChartPoint = {
+        date,
+        总计: 0,
+      };
 
-    for (const [projectId, cents] of earningsByProject) {
-      const projectName = params.projectNames.get(projectId);
+      for (const [projectId, cents] of earningsByProject) {
+        const projectName = params.projectNames.get(projectId);
 
-      if (!projectName) {
-        continue;
+        if (!projectName) {
+          continue;
+        }
+
+        const yuan = cents / 100;
+        point[projectName] = yuan;
+        point["总计"] = Number(point["总计"]) + yuan;
       }
 
-      const yuan = cents / 100;
-      point[projectName] = yuan;
-      point["总计"] = Number(point["总计"]) + yuan;
+      return point;
     }
+  );
 
-    return point;
-  });
+  return {
+    chartData,
+    earningsByProjectCents: runningEarnings,
+  };
 }
 
 export default async function MePage() {
@@ -306,6 +313,12 @@ export default async function MePage() {
       shares: plan.shares,
     }))
   );
+  const { chartData, earningsByProjectCents } = buildEarningsTimeline({
+    entries: approvedEntries,
+    plans: allPlans,
+    projectNames,
+    userId: session.user.id,
+  });
 
   const projectCards = projects.map((project) => {
     const currentPlan = project.allocations[0];
@@ -316,9 +329,7 @@ export default async function MePage() {
       (total, entry) => total + signedProfitAmountCents(entry),
       0
     );
-    const earningsCents = currentShare
-      ? Math.round((netProfitCents * currentShare.basisPoints) / 10000)
-      : 0;
+    const earningsCents = earningsByProjectCents.get(project.id) ?? 0;
 
     return {
       id: project.id,
@@ -335,12 +346,6 @@ export default async function MePage() {
   );
   const totalReceivedCents = 0;
   const pendingSettlementCents = totalEarnedCents - totalReceivedCents;
-  const chartData = buildChartData({
-    entries: approvedEntries,
-    plans: allPlans,
-    projectNames,
-    userId: session.user.id,
-  });
 
   return (
     <div className="space-y-6">
