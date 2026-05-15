@@ -152,6 +152,18 @@ ALL_DONE = true (2026-05-09 18:30) — 全部 21 个 task [x] (P0/P1/P2/P3 + T-0
   **不要碰**: prisma schema (LedgerEvent 表字段已够, eventType 是 String)
   **验收**: 反向冲销后, reversal entry 详情时间线能看到自己的创建事件; e2e reverse-entry.spec.ts PASS。
 
+- [ ] **T-212 修 Base UI 控件 nativeButton 警告** [P1·阻塞e2e]
+  **背景**: 全套 e2e 跑出多页 `console.error: Base UI: A component that acts as a button expected a native <button> because the nativeButton prop is true...`。出现在 admin/users 页 Button、project detail 页 EntryRow 的 DialogTrigger 等。该警告让 e2e "0 客户端报错"断言失败，挡住自动化验证。预存问题(非本次 P0 引入)。
+  **怎么改**: rg 全库找所有 DialogTrigger / Button 用 render prop 包非原生 button 的地方; 按 Base UI 文档修。目标 dev 模式打开 admin/users + project detail 页控制台 0 个该警告。
+  **约束**: 不碰 prisma schema / 不装新依赖 / 不 push
+  **验收**: `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
+
+- [ ] **T-213 修录入/分配表单 useActionState transition 警告** [P1·阻塞e2e]
+  **背景**: e2e 跑出 `console.error: An async function with useActionState was called outside of a transition...`。录入流水表单、分配方案表单的 `action={async (formData) => {...formAction(formData)}}` 在 async 函数里直接调 formAction。预存问题。
+  **怎么改**: formAction 包进 `startTransition`，或按 React 19/Next 16 正确写法。涉及 new-entry-form.tsx + 分配方案表单。别破坏现有 success redirect 逻辑。
+  **约束**: 不碰 prisma schema / 不装新依赖 / 不 push
+  **验收**: `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿; 录入功能不坏。
+
 - [ ] **T-204 日期输入按 Asia/Shanghai 解释, 不用服务器本地时区** [P1]
   **背景**: 录入日期 / 分配方案生效日期的 `YYYY-MM-DD` 转 Date 时依赖 Node 进程时区。
   **改哪**: `src/server/entries.ts:30` + `src/server/allocations.ts:37`
