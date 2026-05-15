@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -55,7 +55,12 @@ export default async function AdminUsersPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold tracking-normal">用户管理</h1>
-        <Button render={<Link href="/admin/users/new" />}>+ 添加合伙人</Button>
+        <Link
+          href="/admin/users/new"
+          className={buttonVariants({ variant: "default" })}
+        >
+          + 添加合伙人
+        </Link>
       </div>
 
       <Card>

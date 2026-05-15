@@ -213,7 +213,10 @@ export function EntryRow({
 
   return (
     <Dialog>
-      <DialogTrigger render={<TableRow className="cursor-pointer" />}>
+      <DialogTrigger
+        nativeButton={false}
+        render={<TableRow className="cursor-pointer" />}
+      >
         <TableCell className="text-muted-foreground">
           {formatDate(entry.occurredAt)}
         </TableCell>

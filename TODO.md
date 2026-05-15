@@ -152,7 +152,7 @@ ALL_DONE = true (2026-05-09 18:30) — 全部 21 个 task [x] (P0/P1/P2/P3 + T-0
   **不要碰**: prisma schema (LedgerEvent 表字段已够, eventType 是 String)
   **验收**: 反向冲销后, reversal entry 详情时间线能看到自己的创建事件; e2e reverse-entry.spec.ts PASS。
 
-- [!] **T-212 修 Base UI 控件 nativeButton 警告** [P1·阻塞e2e]
+- [x] **T-212 修 Base UI 控件 nativeButton 警告** [P1·阻塞e2e] — 2026-05-15 完成
   **背景**: 全套 e2e 跑出多页 `console.error: Base UI: A component that acts as a button expected a native <button> because the nativeButton prop is true...`。出现在 admin/users 页 Button、project detail 页 EntryRow 的 DialogTrigger 等。该警告让 e2e "0 客户端报错"断言失败，挡住自动化验证。预存问题(非本次 P0 引入)。
   **怎么改**: rg 全库找所有 DialogTrigger / Button 用 render prop 包非原生 button 的地方; 按 Base UI 文档修。目标 dev 模式打开 admin/users + project detail 页控制台 0 个该警告。
   **约束**: 不碰 prisma schema / 不装新依赖 / 不 push
