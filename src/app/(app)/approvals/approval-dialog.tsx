@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import type { EntryStatus, EntryType } from "@/generated/prisma/enums";
+import { signedDisplayAmountCents } from "@/lib/amount";
 import { entryTypeLabel, formatDate, formatYuan } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -60,14 +61,6 @@ const typeBadgeClass: Record<EntryType, string> = {
   PROXY_RECEIVE: "bg-purple-50 text-purple-700 ring-purple-200",
   PROXY_PAY: "bg-orange-50 text-orange-700 ring-orange-200",
 };
-
-function signedAmount(entry: ApprovalEntry) {
-  if (entry.type === "EXPENSE" || entry.type === "PROXY_PAY") {
-    return -entry.amountCents;
-  }
-
-  return entry.amountCents;
-}
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) {
@@ -157,7 +150,7 @@ export function ApprovalDialog({ entry }: { entry: ApprovalEntry }) {
     rejectEntryAction,
     initialState
   );
-  const amount = signedAmount(entry);
+  const amount = signedDisplayAmountCents(entry);
 
   return (
     <>

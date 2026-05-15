@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { EntryType } from "@/generated/prisma/enums";
+import { signedDisplayAmountCents } from "@/lib/amount";
 import { prisma } from "@/lib/db";
 import { formatDate, formatYuan } from "@/lib/format";
 
@@ -27,14 +27,6 @@ const eventBadgeClass: Record<string, string> = {
   ENTRY_REJECTED: "bg-red-50 text-red-700 ring-red-200",
   ENTRY_REVERSED: "bg-orange-50 text-orange-700 ring-orange-200",
 };
-
-function signedAmount(entry: { type: EntryType; amountCents: number }) {
-  if (entry.type === "EXPENSE" || entry.type === "PROXY_PAY") {
-    return -entry.amountCents;
-  }
-
-  return entry.amountCents;
-}
 
 export default async function EntryAuditPage({
   params,
@@ -95,7 +87,7 @@ export default async function EntryAuditPage({
         <h1 className="text-2xl font-semibold tracking-normal">流水审计时间线</h1>
         <p className="text-sm text-muted-foreground">
           {entry.project.name} · {entry.description} ·{" "}
-          {formatYuan(signedAmount(entry))}
+          {formatYuan(signedDisplayAmountCents(entry))}
         </p>
       </div>
 

@@ -25,6 +25,10 @@ import {
 } from "@/components/ui/table";
 import { auth } from "@/auth";
 import { EntryStatus, EntryType } from "@/generated/prisma/enums";
+import {
+  signedDisplayAmountCents,
+  signedProfitAmountCents,
+} from "@/lib/amount";
 import { prisma } from "@/lib/db";
 import { entryTypeLabel, formatDate, formatYuan } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -60,26 +64,6 @@ const typeBadgeClass = {
   PROXY_RECEIVE: "bg-purple-50 text-purple-700 ring-purple-200",
   PROXY_PAY: "bg-orange-50 text-orange-700 ring-orange-200",
 } satisfies Record<EntryType, string>;
-
-function signedProfitAmountCents(entry: Pick<ApprovedEntry, "type" | "amountCents">) {
-  if (entry.type === EntryType.INCOME) {
-    return entry.amountCents;
-  }
-
-  if (entry.type === EntryType.EXPENSE || entry.type === EntryType.PROXY_PAY) {
-    return -entry.amountCents;
-  }
-
-  return 0;
-}
-
-function signedDisplayAmountCents(entry: Pick<ApprovedEntry, "type" | "amountCents">) {
-  if (entry.type === EntryType.EXPENSE || entry.type === EntryType.PROXY_PAY) {
-    return -entry.amountCents;
-  }
-
-  return entry.amountCents;
-}
 
 function formatBasisPoints(basisPoints: number) {
   return (basisPoints / 100).toLocaleString("zh-CN", {

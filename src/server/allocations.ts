@@ -9,6 +9,7 @@ import { auth } from "@/auth";
 import { EntryStatus, EntryType, UserRole } from "@/generated/prisma/enums";
 import { parseShanghaiDateInput } from "@/lib/date";
 import { prisma } from "@/lib/db";
+import { signedProfitAmountCents } from "@/lib/amount";
 
 type AllocationShareInput = {
   userId: string;
@@ -245,26 +246,14 @@ export async function calculatePartnerEarnings(
   projectId: string,
   userId: string
 ) {
-  const [incomeSummary, expenseSummary, currentAllocation] = await Promise.all([
-    prisma.entry.aggregate({
+  const [approvedProfitEntries, currentAllocation] = await Promise.all([
+    prisma.entry.findMany({
       where: {
         projectId,
         status: EntryStatus.APPROVED,
-        type: EntryType.INCOME,
       },
-      _sum: {
-        amountCents: true,
-      },
-    }),
-    prisma.entry.aggregate({
-      where: {
-        projectId,
-        status: EntryStatus.APPROVED,
-        type: {
-          in: [EntryType.EXPENSE, EntryType.PROXY_PAY],
-        },
-      },
-      _sum: {
+      select: {
+        type: true,
         amountCents: true,
       },
     }),
@@ -283,9 +272,10 @@ export async function calculatePartnerEarnings(
     return 0;
   }
 
-  const incomeCents = incomeSummary._sum.amountCents ?? 0;
-  const expenseCents = expenseSummary._sum.amountCents ?? 0;
-  const netProfitCents = incomeCents - expenseCents;
+  const netProfitCents = approvedProfitEntries.reduce(
+    (total, entry) => total + signedProfitAmountCents(entry),
+    0
+  );
 
   return Math.round((netProfitCents * userShare.basisPoints) / 10000);
 }

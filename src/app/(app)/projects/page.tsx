@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { EntryStatus, EntryType } from "@/generated/prisma/enums";
+import { signedProfitAmountCents } from "@/lib/amount";
 import { prisma } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
@@ -26,18 +27,6 @@ const moneyFormatter = new Intl.NumberFormat("zh-CN", {
 
 function formatCents(cents: number) {
   return moneyFormatter.format(cents / 100);
-}
-
-function signedAmountCents(type: EntryType, amountCents: number) {
-  if (type === EntryType.INCOME) {
-    return amountCents;
-  }
-
-  if (type === EntryType.EXPENSE || type === EntryType.PROXY_PAY) {
-    return -amountCents;
-  }
-
-  return 0;
 }
 
 export default async function ProjectsPage() {
@@ -91,7 +80,7 @@ export default async function ProjectsPage() {
     const approvedProfitCents = project.entries
       .filter((entry) => entry.status === EntryStatus.APPROVED)
       .reduce(
-        (total, entry) => total + signedAmountCents(entry.type, entry.amountCents),
+        (total, entry) => total + signedProfitAmountCents(entry),
         0
       );
 

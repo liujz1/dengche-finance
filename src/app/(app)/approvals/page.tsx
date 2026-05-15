@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EntryStatus, type EntryType } from "@/generated/prisma/enums";
+import { signedDisplayAmountCents } from "@/lib/amount";
 import { prisma } from "@/lib/db";
 import { entryTypeLabel, formatDate, formatYuan } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -30,14 +31,6 @@ const typeBadgeClass: Record<EntryType, string> = {
   PROXY_RECEIVE: "bg-purple-50 text-purple-700 ring-purple-200",
   PROXY_PAY: "bg-orange-50 text-orange-700 ring-orange-200",
 };
-
-function signedAmount(entry: { type: EntryType; amountCents: number }) {
-  if (entry.type === "EXPENSE" || entry.type === "PROXY_PAY") {
-    return -entry.amountCents;
-  }
-
-  return entry.amountCents;
-}
 
 function truncateText(value: string, maxLength = 28) {
   if (value.length <= maxLength) {
@@ -159,7 +152,7 @@ export default async function ApprovalsPage() {
               </TableHeader>
               <TableBody>
                 {approvalEntries.map((entry) => {
-                  const amount = signedAmount(entry);
+                  const amount = signedDisplayAmountCents(entry);
 
                   return (
                     <TableRow key={entry.id}>

@@ -21,10 +21,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { EntryStatus, EntryType } from "@/generated/prisma/enums";
+import { EntryStatus } from "@/generated/prisma/enums";
+import {
+  isProfitEntryType,
+  isProfitExpenseEntryType,
+  isProfitIncomeEntryType,
+  signedProfitAmountCents,
+} from "@/lib/amount";
+import { prisma } from "@/lib/db";
 import { formatYuan } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { prisma } from "@/lib/db";
 
 type ProjectDetailPageProps = {
   params: Promise<{
@@ -84,31 +90,17 @@ export default async function ProjectDetailPage({
     notFound();
   }
 
-  const [incomeSummary, expenseSummary, pendingCount, entries] =
+  const [approvedProfitEntries, pendingCount, entries] =
     await Promise.all([
-      prisma.entry.aggregate({
+      prisma.entry.findMany({
         where: {
           projectId: project.id,
-          type: EntryType.INCOME,
           status: EntryStatus.APPROVED,
         },
-        _sum: {
+        select: {
+          type: true,
           amountCents: true,
         },
-        _count: true,
-      }),
-      prisma.entry.aggregate({
-        where: {
-          projectId: project.id,
-          type: {
-            in: [EntryType.EXPENSE, EntryType.PROXY_PAY],
-          },
-          status: EntryStatus.APPROVED,
-        },
-        _sum: {
-          amountCents: true,
-        },
-        _count: true,
       }),
       prisma.entry.count({
         where: {
@@ -133,9 +125,37 @@ export default async function ProjectDetailPage({
       }),
     ]);
 
-  const incomeCents = incomeSummary._sum.amountCents ?? 0;
-  const expenseCents = expenseSummary._sum.amountCents ?? 0;
-  const profitCents = incomeCents - expenseCents;
+  const incomeSummary = approvedProfitEntries.reduce(
+    (summary, entry) => {
+      if (isProfitIncomeEntryType(entry.type)) {
+        summary.amountCents += entry.amountCents;
+        summary.count += 1;
+      }
+
+      return summary;
+    },
+    { amountCents: 0, count: 0 }
+  );
+  const expenseSummary = approvedProfitEntries.reduce(
+    (summary, entry) => {
+      if (isProfitExpenseEntryType(entry.type)) {
+        summary.amountCents += entry.amountCents;
+        summary.count += 1;
+      }
+
+      return summary;
+    },
+    { amountCents: 0, count: 0 }
+  );
+  const incomeCents = incomeSummary.amountCents;
+  const expenseCents = expenseSummary.amountCents;
+  const profitCents = approvedProfitEntries.reduce(
+    (total, entry) => total + signedProfitAmountCents(entry),
+    0
+  );
+  const profitEntryCount = approvedProfitEntries.filter((entry) =>
+    isProfitEntryType(entry.type)
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -174,7 +194,7 @@ export default async function ProjectDetailPage({
         <Card>
           <CardHeader>
             <CardTitle>总收入</CardTitle>
-            <CardDescription>{incomeSummary._count} 笔已通过收入</CardDescription>
+            <CardDescription>{incomeSummary.count} 笔已通过收入</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold tabular-nums text-emerald-700">
@@ -186,7 +206,7 @@ export default async function ProjectDetailPage({
         <Card>
           <CardHeader>
             <CardTitle>总支出</CardTitle>
-            <CardDescription>{expenseSummary._count} 笔已通过支出</CardDescription>
+            <CardDescription>{expenseSummary.count} 笔已通过支出</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold tabular-nums text-red-700">
@@ -199,7 +219,7 @@ export default async function ProjectDetailPage({
           <CardHeader>
             <CardTitle>净利润</CardTitle>
             <CardDescription>
-              {incomeSummary._count + expenseSummary._count} 笔已通过盈亏流水
+              {profitEntryCount} 笔已通过盈亏流水
             </CardDescription>
           </CardHeader>
           <CardContent>

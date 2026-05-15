@@ -20,6 +20,7 @@ import {
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import type { EntryStatus, EntryType } from "@/generated/prisma/enums";
+import { signedDisplayAmountCents } from "@/lib/amount";
 import { getEvidencePublicUrl } from "@/lib/evidence-url";
 import { entryTypeLabel, formatDate, formatYuan } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -72,14 +73,6 @@ function statusLabel(status: EntryStatus) {
     case "VOIDED":
       return "已冲销";
   }
-}
-
-function signedAmount(entry: EntryRowEntry) {
-  if (entry.type === "EXPENSE" || entry.type === "PROXY_PAY") {
-    return -entry.amountCents;
-  }
-
-  return entry.amountCents;
 }
 
 function evidenceUrl(r2Key: string) {
@@ -233,7 +226,7 @@ export function EntryRow({
   entry: EntryRowEntry;
   isOwner?: boolean;
 }) {
-  const displayAmount = signedAmount(entry);
+  const displayAmount = signedDisplayAmountCents(entry);
   const canReverse = entry.status === "APPROVED" && isOwner && !entry.reversedFromId;
 
   return (
