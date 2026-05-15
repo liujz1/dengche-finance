@@ -10,6 +10,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -160,124 +161,130 @@ export function ApprovalDialog({ entry }: { entry: ApprovalEntry }) {
         <DialogTrigger render={<Button variant="outline" size="sm" />}>
           查看
         </DialogTrigger>
-        <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] overflow-y-auto sm:max-w-4xl">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:max-w-4xl">
           <DialogHeader>
-          <DialogTitle className="pr-8">审核流水</DialogTitle>
-          <DialogDescription>
-            {entry.projectName} · {entry.createdByName} ·{" "}
-            {formatDate(entry.createdAt)}
-          </DialogDescription>
-        </DialogHeader>
+            <DialogTitle className="pr-8">审核流水</DialogTitle>
+            <DialogDescription>
+              {entry.projectName} · {entry.createdByName} ·{" "}
+              {formatDate(entry.createdAt)}
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-5">
-          <dl className="grid gap-4 rounded-lg border bg-muted/20 p-4 sm:grid-cols-3">
-            <DetailItem label="流水 ID" value={entry.id} />
-            <DetailItem label="项目 ID" value={entry.projectId} />
-            <DetailItem label="项目" value={entry.projectName} />
-            <DetailItem label="状态" value="待审核" />
-            <DetailItem
-              label="类型"
-              value={
-                <Badge
-                  variant="outline"
-                  className={cn("ring-1", typeBadgeClass[entry.type])}
-                >
-                  {entryTypeLabel(entry.type)}
-                </Badge>
-              }
-            />
-            <DetailItem
-              label="金额"
-              value={
-                <span
-                  className={cn(
-                    "tabular-nums",
-                    amount > 0 && "text-emerald-700",
-                    amount < 0 && "text-red-700"
-                  )}
-                >
-                  {formatYuan(amount)}
-                </span>
-              }
-            />
-            <DetailItem label="发生时间" value={formatDate(entry.occurredAt)} />
-            <DetailItem label="录入时间" value={formatDate(entry.createdAt)} />
-            <DetailItem label="录入人 ID" value={entry.createdById} />
-            <DetailItem
-              label="录入人"
-              value={`${entry.createdByName} (${entry.createdByEmail})`}
-            />
-            <DetailItem label="审核人 ID" value={emptyValue(entry.approvedById)} />
-            <DetailItem
-              label="审核时间"
-              value={entry.approvedAt ? formatDate(entry.approvedAt) : "无"}
-            />
-            <DetailItem
-              label="冲销来源 ID"
-              value={emptyValue(entry.reversedFromId)}
-            />
-            <DetailItem
-              label="驳回原因"
-              value={emptyValue(entry.rejectedReason)}
-              className="sm:col-span-3"
-            />
-            <DetailItem
-              label="描述"
-              value={entry.description}
-              className="sm:col-span-3"
-            />
-          </dl>
+          <div className="space-y-5">
+            <dl className="grid gap-4 rounded-lg border bg-muted/20 p-4 sm:grid-cols-3">
+              <DetailItem label="流水 ID" value={entry.id} />
+              <DetailItem label="项目 ID" value={entry.projectId} />
+              <DetailItem label="项目" value={entry.projectName} />
+              <DetailItem label="状态" value="待审核" />
+              <DetailItem
+                label="类型"
+                value={
+                  <Badge
+                    variant="outline"
+                    className={cn("ring-1", typeBadgeClass[entry.type])}
+                  >
+                    {entryTypeLabel(entry.type)}
+                  </Badge>
+                }
+              />
+              <DetailItem
+                label="金额"
+                value={
+                  <span
+                    className={cn(
+                      "tabular-nums",
+                      amount > 0 && "text-emerald-700",
+                      amount < 0 && "text-red-700"
+                    )}
+                  >
+                    {formatYuan(amount)}
+                  </span>
+                }
+              />
+              <DetailItem label="发生时间" value={formatDate(entry.occurredAt)} />
+              <DetailItem label="录入时间" value={formatDate(entry.createdAt)} />
+              <DetailItem label="录入人 ID" value={entry.createdById} />
+              <DetailItem
+                label="录入人"
+                value={`${entry.createdByName} (${entry.createdByEmail})`}
+              />
+              <DetailItem label="审核人 ID" value={emptyValue(entry.approvedById)} />
+              <DetailItem
+                label="审核时间"
+                value={entry.approvedAt ? formatDate(entry.approvedAt) : "无"}
+              />
+              <DetailItem
+                label="冲销来源 ID"
+                value={emptyValue(entry.reversedFromId)}
+              />
+              <DetailItem
+                label="驳回原因"
+                value={emptyValue(entry.rejectedReason)}
+                className="sm:col-span-3"
+              />
+              <DetailItem
+                label="描述"
+                value={entry.description}
+                className="sm:col-span-3"
+              />
+            </dl>
 
-          <section className="space-y-3">
-            <h2 className="text-sm font-medium">凭证图片</h2>
-            {entry.evidences.length > 0 ? (
-              <div className="grid gap-3 md:grid-cols-2">
-                {entry.evidences.map((evidence) => {
-                  const url = evidenceUrl(evidence.r2Key);
+            <section className="space-y-3">
+              <h2 className="text-sm font-medium">凭证图片</h2>
+              {entry.evidences.length > 0 ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {entry.evidences.map((evidence) => {
+                    const url = evidenceUrl(evidence.r2Key);
 
-                  return (
-                    <figure
-                      key={evidence.id}
-                      className="overflow-hidden rounded-lg border bg-background"
-                    >
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="在新标签打开凭证原图"
-                        title="打开原图"
+                    return (
+                      <figure
+                        key={evidence.id}
+                        className="overflow-hidden rounded-lg border bg-background"
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={url}
-                          alt="凭证图片"
-                          className="max-h-[480px] w-full cursor-pointer bg-muted object-contain"
-                        />
-                      </a>
-                      <figcaption className="space-y-1 border-t p-3 text-xs text-muted-foreground">
-                        <p className="break-all text-foreground">{evidence.r2Key}</p>
-                        <p>
-                          {evidence.mimeType} · {formatFileSize(evidence.sizeBytes)}
-                        </p>
-                      </figcaption>
-                    </figure>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-                这条流水没有凭证图片。
-              </div>
-            )}
-          </section>
-
-          <div className="sticky bottom-0 grid gap-3 border-t bg-background px-1 py-4 lg:grid-cols-[1fr_2fr]">
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label="在新标签打开凭证原图"
+                          title="打开原图"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt="凭证图片"
+                            className="max-h-[480px] w-full cursor-pointer bg-muted object-contain"
+                          />
+                        </a>
+                        <figcaption className="space-y-1 border-t p-3 text-xs text-muted-foreground">
+                          <p className="break-all text-foreground">
+                            {evidence.r2Key}
+                          </p>
+                          <p>
+                            {evidence.mimeType} ·{" "}
+                            {formatFileSize(evidence.sizeBytes)}
+                          </p>
+                        </figcaption>
+                      </figure>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+                  这条流水没有凭证图片。
+                </div>
+              )}
+            </section>
+          </div>
+          <DialogFooter className="grid gap-3 bg-background sm:justify-normal lg:grid-cols-[1fr_2fr]">
             <form action={approveAction} className="flex items-end">
               <input type="hidden" name="entryId" value={entry.id} />
               <ApprovalSubmitButton />
             </form>
 
-            <form action={rejectAction} className="grid gap-2 sm:grid-cols-[1fr_auto]">
+            <form
+              action={rejectAction}
+              className="grid gap-2 sm:grid-cols-[1fr_auto]"
+            >
               <input type="hidden" name="entryId" value={entry.id} />
               <Textarea
                 name="reason"
@@ -297,8 +304,7 @@ export function ApprovalDialog({ entry }: { entry: ApprovalEntry }) {
                 </p>
               ) : null}
             </form>
-          </div>
-        </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
