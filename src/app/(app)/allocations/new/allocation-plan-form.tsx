@@ -3,7 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useMemo, useRef } from "react";
+import {
+  useActionState,
+  useEffect,
+  useMemo,
+  useRef,
+  useTransition,
+} from "react";
 import { useFormStatus } from "react-dom";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -101,6 +107,7 @@ export function AllocationPlanForm({
     createAllocationPlanAction,
     initialState
   );
+  const [, startTransition] = useTransition();
   const router = useRouter();
   const lastErrorRef = useRef<string | undefined>(undefined);
   const defaultShares = useMemo(
@@ -163,7 +170,9 @@ export function AllocationPlanForm({
           return;
         }
 
-        formAction(formData);
+        startTransition(() => {
+          formAction(formData);
+        });
       }}
     >
       <input type="hidden" name="projectId" value={project.id} />

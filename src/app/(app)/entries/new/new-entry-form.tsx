@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -144,6 +144,7 @@ export function NewEntryForm({
     createEntryAction,
     initialState
   );
+  const [, startTransition] = useTransition();
   const router = useRouter();
   const lastErrorRef = useRef<string | undefined>(undefined);
   const safeDefaultProjectId = projects.some(
@@ -203,7 +204,9 @@ export function NewEntryForm({
           return;
         }
 
-        formAction(formData);
+        startTransition(() => {
+          formAction(formData);
+        });
       }}
     >
       <Card>
