@@ -207,7 +207,7 @@ ALL_DONE = true (2026-05-09 18:30) — 全部 21 个 task [x] (P0/P1/P2/P3 + T-0
   **怎么改**: 让每次部署自动对生产 dev.db 跑 `prisma migrate deploy`（先迁移后起服务、不丢数据、失败非静默）。改 Dockerfile/docker-compose/deploy.yml 中需要的。
   **验收**: 配置语法正确、逻辑自洽; push 后 Actions 部署日志能看到迁移成功。
 
-- [ ] **T-209 evidence URL 编码统一** [P1]
+- [!] **T-209 evidence URL 编码统一** [P1]
   **背景**: `getEvidencePublicUrl` 把 r2Key base64 后拼 URL, 但 API route `assertEvidenceKey` 期望解码后以 `uploads/evidences/` 开头, 编码策略不一致。
   **改哪**: `src/lib/evidence-url.ts:2` + `src/app/api/evidence/` route
   **怎么改**: 统一——删 base64, 用 `encodeURIComponent(r2Key)`; 确保 API route 的校验与之匹配。
