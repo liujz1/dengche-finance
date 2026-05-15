@@ -119,6 +119,91 @@ ALL_DONE = true (2026-05-09 18:30) — 全部 21 个 task [x] (P0/P1/P2/P3 + T-0
 
 ---
 
+## P0/P1/P2 — 2026-05-15 重度扫描 bug 围剿 (S2 阶段)
+
+> 来源: codex 重度扫描 (见 BUG_SCAN_2026-05-15.md) + 老板实测。
+> 顺序: 先 P0 (T-200~203) → 再 P1 (T-204~209) → 再 P2 (T-210~211)。codex 从上往下挑第一个 `[ ]`。
+> 每个 task 完成必须 `npx tsc --noEmit` + `pnpm build` 全绿。
+
+- [ ] **T-200 审核详情面板"通过/驳回"按钮吸底可见** [P0]
+  **背景**: 老板实测——打开审核详情对话框后, "通过/驳回"按钮被内容(含凭证大图)推到滚动区底部, 老板报告"按钮在右下角点不到", 审核流程实际不可用。审核是账本核心三锚之一。
+  **改哪**: `src/app/(app)/approvals/approval-dialog.tsx` — DialogContent(:170) + 操作按钮区(:269)
+  **怎么改**: 操作按钮区(approve/reject 两个 form)固定吸底(sticky bottom-0 + 背景色 + 上边框), 不随内容滚动始终可见; DialogContent 内容区可滚动; 面板宽度限制不溢出视口。
+  **不要碰**: server/entries.ts 的审核逻辑 / Dialog 组件本身
+  **验收**: dev server 起, 打开 /approvals 点"查看", 不滚动就能看到"通过/驳回"按钮; e2e approval.spec.ts 仍 PASS。
+
+- [ ] **T-201 时间显示差 8 小时 — formatDate 钉死 Asia/Shanghai** [P0]
+  **背景**: 老板截图实证——审核列表显示 "11:17", 同一条详情显示 "19:17", 差 8 小时。
+  **改哪**: `src/lib/format.ts:10` formatDate
+  **怎么改**: `Intl.DateTimeFormat("zh-CN", {...})` 显式加 `timeZone: "Asia/Shanghai"`; 全站(列表+详情, server+client)统一走这个函数。
+  **不要碰**: DB 存储格式(继续存 UTC) / prisma schema
+  **验收**: 同一条 Entry 在列表与详情显示完全相同的时间; `npx tsc --noEmit` + `pnpm build` 绿。
+
+- [ ] **T-202 录入流水金额加最大值上限校验** [P0]
+  **背景**: 金额只校验正数+两位小数, 无上限, 极大值 `Number(value)*100` 会溢出 Prisma Int / 丢精度, 能把账本算坏。
+  **改哪**: `src/server/entries.ts:16` 金额校验 + 录入页客户端校验
+  **怎么改**: 设一个合理上限(建议单笔 ≤ 1 亿元 = 10_000_000_000 分), 客户端 + Server Action 双层校验; 转换后检查 `Number.isSafeInteger` 且在 Prisma Int (32位, ±21.4亿) 范围内 — 若上限超 Int 范围则上限取 Int 安全值。
+  **验收**: 录入超大金额被拦截并提示中文错误; 正常金额不受影响; e2e entry-create.spec.ts PASS。
+
+- [ ] **T-203 反向冲销 — reversal entry 补写自己的 LedgerEvent** [P0]
+  **背景**: 信任三锚之 immutable log。冲销时只给原流水写 `ENTRY_REVERSED`, 新建的反向流水没有任何事件 → 审计链漏一半。
+  **改哪**: `src/server/entries.ts:558` reverseEntry 事务
+  **怎么改**: 同一事务内为新建的 reversal entry 也写一条 LedgerEvent(eventType 用 `ENTRY_CREATED` 或新增 `ENTRY_REVERSAL_CREATED`, payload 含完整快照 + 指向原条 ID)。
+  **不要碰**: prisma schema (LedgerEvent 表字段已够, eventType 是 String)
+  **验收**: 反向冲销后, reversal entry 详情时间线能看到自己的创建事件; e2e reverse-entry.spec.ts PASS。
+
+- [ ] **T-204 日期输入按 Asia/Shanghai 解释, 不用服务器本地时区** [P1]
+  **背景**: 录入日期 / 分配方案生效日期的 `YYYY-MM-DD` 转 Date 时依赖 Node 进程时区。
+  **改哪**: `src/server/entries.ts:30` + `src/server/allocations.ts:37`
+  **怎么改**: 把 `YYYY-MM-DD` 明确解释为上海时区 00:00, 转对应 UTC instant 入库(上海 00:00 = 前一日 UTC 16:00)。两处用同一个 helper。
+  **验收**: `npx tsc --noEmit` + `pnpm build` 绿; 录入日期不偏移。
+
+- [ ] **T-205 流水审计详情标题金额按类型加负号** [P1]
+  **背景**: 详情头部直接 `formatYuan(entry.amountCents)`, 支出显示成正数, 跟列表"-¥200"对不上。
+  **改哪**: `src/app/(app)/projects/[id]/[entryId]/page.tsx:77`
+  **怎么改**: 复用统一的 signedAmount 规则(EXPENSE/PROXY_PAY 取负)再 formatYuan。
+  **验收**: 支出流水详情标题显示负号且与列表一致。
+
+- [ ] **T-206 个人页"我应得"卡片与趋势曲线口径统一** [P1]
+  **背景**: 项目卡用"当前最新份额 × 全量历史净利润", 趋势曲线按"流水发生时的方案"算, 两个数对不上。
+  **口径(dengche 拍, 会计正确做法)**: 按历史方案归属——每笔流水按其发生时生效的分配方案计算 delta earnings, 累加。卡片"我应得" = 趋势曲线终点值。
+  **改哪**: `src/app/(app)/me/page.tsx:319` 项目卡计算
+  **怎么改**: 项目卡"我应得"改为复用趋势曲线同一套 delta 累加逻辑(抽成共享函数), 不要用当前份额重算历史。
+  **验收**: 个人页每个项目, 卡片"我应得"数字 == 趋势曲线最后一个点; e2e me-trends.spec.ts PASS。
+
+- [ ] **T-207 加合伙人密码强度校验** [P1]
+  **背景**: 密码只校验 `min(6)`, "123456" 能过。
+  **改哪**: `src/server/admin-users.ts:21` + 添加用户页客户端
+  **怎么改**: 加复杂度校验——至少 8 位, 拦截纯数字 / 常见弱密码(123456/password 等)。中文错误提示。
+  **验收**: 弱密码被拒; 强密码可创建; e2e admin-users.spec.ts PASS。
+
+- [ ] **T-208 LedgerEvent 补覆盖项目创建/用户管理 + 加 projectId** [P1]
+  **背景**: Project.create / 用户创建编辑都没写 LedgerEvent; 且 `ALLOCATION_PLAN_CREATED` 因 entryId 为空, 流水时间线查不到。
+  **改哪**: `src/server/projects.ts:53` + `src/server/admin-users.ts` + LedgerEvent 查询
+  **怎么改**: (1) 项目创建 / 用户创建 / 用户编辑各补一条 LedgerEvent; (2) 给 LedgerEvent 加可选 `projectId` 字段(这条**需要改 prisma schema, 允许**), 项目级时间线按 projectId 查。
+  **注意**: 这是本批唯一允许动 prisma schema 的 task, 改完要 `pnpm prisma migrate dev`。
+  **验收**: 项目详情能看到项目创建/分配方案事件; `pnpm build` 绿。
+
+- [ ] **T-209 evidence URL 编码统一** [P1]
+  **背景**: `getEvidencePublicUrl` 把 r2Key base64 后拼 URL, 但 API route `assertEvidenceKey` 期望解码后以 `uploads/evidences/` 开头, 编码策略不一致。
+  **改哪**: `src/lib/evidence-url.ts:2` + `src/app/api/evidence/` route
+  **怎么改**: 统一——删 base64, 用 `encodeURIComponent(r2Key)`; 确保 API route 的校验与之匹配。
+  **验收**: 凭证图片能正常加载显示。
+
+- [ ] **T-210 用户管理页时间格式复用共享 formatDate** [P2]
+  **改哪**: `src/app/(app)/admin/users/page.tsx:20`
+  **怎么改**: 删局部 `toLocaleString` formatter, 改用 `src/lib/format.ts` 的 formatDate(T-201 修好后已固定时区)。
+  **验收**: 用户创建时间格式与全站一致。
+
+- [ ] **T-211 抽统一的盈亏分类/符号函数** [P2]
+  **背景**: 项目详情用 aggregate, 项目列表用 signedAmountCents 逐条算, 规则分散。
+  **怎么改**: 抽一个共享函数(是否计入盈亏 + 符号), 列表/详情/个人页/审核页共用。纯重构, 不改行为。
+  **验收**: 各页盈亏数字不变; `pnpm build` 绿。
+
+S2_ALL_DONE = false (2026-05-15 启动, 12 个 task 待做)
+
+---
+
 ## Codex 工作约束 (必读 - v2.1)
 
 - **每次循环开始**: `git pull origin main` 拿最新 TODO.md (dengche 已 push)
