@@ -10,6 +10,9 @@ import { EntryStatus, EntryType } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import { saveUploadedFile } from "@/lib/upload";
 
+const MAX_ENTRY_AMOUNT_CENTS = 2_000_000_000;
+const MAX_ENTRY_AMOUNT_MESSAGE = "单笔金额不能超过 2000 万元";
+
 const entryFormSchema = z.object({
   projectId: z.string().min(1, "请选择项目"),
   type: z.enum(EntryType, "请选择流水类型"),
@@ -18,7 +21,14 @@ const entryFormSchema = z.object({
     .trim()
     .regex(/^\d+(\.\d{1,2})?$/, "金额最多保留 2 位小数")
     .refine((value) => Number(value) > 0, "金额必须大于 0")
-    .transform((value) => Math.round(Number(value) * 100)),
+    .transform((value) => Math.round(Number(value) * 100))
+    .refine(
+      (cents) =>
+        Number.isSafeInteger(cents) &&
+        cents >= 1 &&
+        cents <= MAX_ENTRY_AMOUNT_CENTS,
+      MAX_ENTRY_AMOUNT_MESSAGE
+    ),
   description: z
     .string()
     .trim()

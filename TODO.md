@@ -139,7 +139,7 @@ ALL_DONE = true (2026-05-09 18:30) — 全部 21 个 task [x] (P0/P1/P2/P3 + T-0
   **不要碰**: DB 存储格式(继续存 UTC) / prisma schema
   **验收**: 同一条 Entry 在列表与详情显示完全相同的时间; `npx tsc --noEmit` + `pnpm build` 绿。
 
-- [!] **T-202 录入流水金额加最大值上限校验** [P0]
+- [x] **T-202 录入流水金额加最大值上限校验** [P0] — 2026-05-15 完成
   **背景**: 金额只校验正数+两位小数, 无上限, 极大值 `Number(value)*100` 会溢出 Prisma Int / 丢精度, 能把账本算坏。
   **改哪**: `src/server/entries.ts:16` 金额校验 + 录入页客户端校验
   **怎么改**: 设一个合理上限(建议单笔 ≤ 1 亿元 = 10_000_000_000 分), 客户端 + Server Action 双层校验; 转换后检查 `Number.isSafeInteger` 且在 Prisma Int (32位, ±21.4亿) 范围内 — 若上限超 Int 范围则上限取 Int 安全值。

@@ -46,6 +46,9 @@ type NewEntryFormProps = {
 };
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_ENTRY_AMOUNT_CENTS = 2_000_000_000;
+const MAX_ENTRY_AMOUNT_YUAN = MAX_ENTRY_AMOUNT_CENTS / 100;
+const MAX_ENTRY_AMOUNT_MESSAGE = "单笔金额不能超过 2000 万元";
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -68,7 +71,16 @@ const entryFormSchema = z.object({
     .string()
     .trim()
     .regex(/^\d+(\.\d{1,2})?$/, "金额最多保留 2 位小数")
-    .refine((value) => Number(value) > 0, "金额必须大于 0"),
+    .refine((value) => Number(value) > 0, "金额必须大于 0")
+    .transform((value) => Math.round(Number(value) * 100))
+    .refine(
+      (cents) =>
+        Number.isSafeInteger(cents) &&
+        cents >= 1 &&
+        cents <= MAX_ENTRY_AMOUNT_CENTS,
+      MAX_ENTRY_AMOUNT_MESSAGE
+    )
+    .transform((cents) => (cents / 100).toFixed(2)),
   description: z
     .string()
     .trim()
@@ -280,6 +292,7 @@ export function NewEntryForm({
               inputMode="decimal"
               step="0.01"
               min="0.01"
+              max={MAX_ENTRY_AMOUNT_YUAN}
               placeholder="0.00"
               disabled={pending}
               aria-invalid={Boolean(errors.amountYuan)}
