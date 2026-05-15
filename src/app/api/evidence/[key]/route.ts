@@ -20,15 +20,15 @@ function unauthorized() {
   return new Response(null, { status: 401 });
 }
 
-function assertEvidenceKey(rawKey: string) {
-  let decodedKey: string;
-
+function decodeEvidenceKeyParam(rawKey: string) {
   try {
-    decodedKey = decodeURIComponent(rawKey);
+    return decodeURIComponent(rawKey);
   } catch {
     return null;
   }
+}
 
+function assertEvidenceKey(decodedKey: string) {
   const normalizedKey = path.posix.normalize(decodedKey);
 
   if (
@@ -59,7 +59,8 @@ export async function GET(_request: Request, { params }: EvidenceRouteContext) {
   }
 
   const { key: rawKey } = await params;
-  const safeKey = assertEvidenceKey(rawKey);
+  const decodedKey = decodeEvidenceKeyParam(rawKey);
+  const safeKey = decodedKey ? assertEvidenceKey(decodedKey) : null;
 
   if (!safeKey) {
     return notFound();

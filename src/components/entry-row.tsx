@@ -20,6 +20,7 @@ import {
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import type { EntryStatus, EntryType } from "@/generated/prisma/enums";
+import { getEvidencePublicUrl } from "@/lib/evidence-url";
 import { entryTypeLabel, formatDate, formatYuan } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { reverseEntryAction, type ReverseEntryState } from "@/server/entries";
@@ -86,7 +87,7 @@ function evidenceUrl(r2Key: string) {
     return r2Key;
   }
 
-  return null;
+  return getEvidencePublicUrl(r2Key);
 }
 
 function formatFileSize(bytes: number) {
