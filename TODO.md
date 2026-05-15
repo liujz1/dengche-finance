@@ -234,6 +234,11 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
   **怎么改**: approval-dialog.tsx 凭证图加点击看大图（新标签打开原图 / 灯箱），择简单可靠的。
   **验收**: `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿; 审核弹窗凭证图可点击看大图。
 
+- [ ] **T-217 Dialog 地基组件根治长内容溢出视口** [P0·T-200未真修好]
+  **背景**: 老板实测审核弹窗"通过/驳回"按钮还是点不到。根因: `src/components/ui/dialog.tsx` 的 DialogContent（Base UI Popup）无 max-height/overflow，长内容弹窗撑破视口、底部按钮溢出屏幕。T-200 只在 approval-dialog 业务层打补丁（max-h+overflow+sticky）没真正生效——补丁打错层。
+  **怎么改**: 改地基组件 DialogContent——默认 max-h（90dvh）+ 内容区可滚动 + 操作区固定底部可见。影响所有 dialog，需全套 e2e 覆盖。
+  **验收**: `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿; e2e 加 `toBeInViewport()` 断言审核通过按钮真实可见; 全套 e2e 全绿。
+
 ---
 
 ## Codex 工作约束 (必读 - v2.1)
