@@ -232,25 +232,37 @@ export function ApprovalDialog({ entry }: { entry: ApprovalEntry }) {
             <h2 className="text-sm font-medium">凭证图片</h2>
             {entry.evidences.length > 0 ? (
               <div className="grid gap-3 md:grid-cols-2">
-                {entry.evidences.map((evidence) => (
-                  <figure
-                    key={evidence.id}
-                    className="overflow-hidden rounded-lg border bg-background"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={evidenceUrl(evidence.r2Key)}
-                      alt="凭证图片"
-                      className="max-h-[480px] w-full bg-muted object-contain"
-                    />
-                    <figcaption className="space-y-1 border-t p-3 text-xs text-muted-foreground">
-                      <p className="break-all text-foreground">{evidence.r2Key}</p>
-                      <p>
-                        {evidence.mimeType} · {formatFileSize(evidence.sizeBytes)}
-                      </p>
-                    </figcaption>
-                  </figure>
-                ))}
+                {entry.evidences.map((evidence) => {
+                  const url = evidenceUrl(evidence.r2Key);
+
+                  return (
+                    <figure
+                      key={evidence.id}
+                      className="overflow-hidden rounded-lg border bg-background"
+                    >
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="在新标签打开凭证原图"
+                        title="打开原图"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt="凭证图片"
+                          className="max-h-[480px] w-full cursor-pointer bg-muted object-contain"
+                        />
+                      </a>
+                      <figcaption className="space-y-1 border-t p-3 text-xs text-muted-foreground">
+                        <p className="break-all text-foreground">{evidence.r2Key}</p>
+                        <p>
+                          {evidence.mimeType} · {formatFileSize(evidence.sizeBytes)}
+                        </p>
+                      </figcaption>
+                    </figure>
+                  );
+                })}
               </div>
             ) : (
               <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
