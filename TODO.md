@@ -164,7 +164,7 @@ ALL_DONE = true (2026-05-09 18:30) — 全部 21 个 task [x] (P0/P1/P2/P3 + T-0
   **约束**: 不碰 prisma schema / 不装新依赖 / 不 push
   **验收**: `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿; 录入功能不坏。
 
-- [!] **T-214 修 T-212 引入的回归 — entry-row 反向冲销弹窗打不开** [P0回归]
+- [x] **T-214 修 T-212 引入的回归 — entry-row 反向冲销弹窗打不开** [P0回归] — 2026-05-15 完成
   **背景**: T-212 给 entry-row.tsx 外层 `DialogTrigger render={<TableRow/>}` 加 `nativeButton={false}` 后，行内嵌套的"反向冲销" Dialog 被外层详情 Dialog 拦截，点"反向冲销"打不开冲销弹窗。e2e reverse-entry.spec.ts fill `textarea[name=reason]` 超时。
   **根因**: entry-row 嵌套 Dialog——整行是详情 Dialog trigger，行内又嵌反向冲销 Dialog。内层 React onClick stopPropagation 拦不住 Base UI 外层 trigger 的原生事件。
   **怎么改**: 重构 entry-row.tsx 解嵌套——详情 Dialog 不用整行 trigger，操作列独立在详情 trigger 之外。保留：点行看详情 + 点反向冲销开弹窗。nativeButton 警告也不能回来。

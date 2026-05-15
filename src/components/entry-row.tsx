@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { type ReactNode, useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { ImageIcon, PaperclipIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -138,6 +138,30 @@ function StateToaster({
   return null;
 }
 
+function EntryDetailTrigger({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <DialogTrigger
+      render={
+        <button
+          type="button"
+          className={cn(
+            "block w-full cursor-pointer appearance-none bg-transparent p-0 text-left text-inherit focus-visible:outline-none",
+            className
+          )}
+        />
+      }
+    >
+      {children}
+    </DialogTrigger>
+  );
+}
+
 function ReverseEntryDialog({ entryId }: { entryId: string }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(
@@ -213,20 +237,19 @@ export function EntryRow({
 
   return (
     <Dialog>
-      <DialogTrigger
-        nativeButton={false}
-        render={<TableRow className="cursor-pointer" />}
-      >
+      <TableRow className="cursor-pointer">
         <TableCell className="text-muted-foreground">
-          {formatDate(entry.occurredAt)}
+          <EntryDetailTrigger>{formatDate(entry.occurredAt)}</EntryDetailTrigger>
         </TableCell>
         <TableCell>
-          <Badge
-            variant="outline"
-            className={cn("ring-1", typeBadgeClass[entry.type])}
-          >
-            {entryTypeLabel(entry.type)}
-          </Badge>
+          <EntryDetailTrigger>
+            <Badge
+              variant="outline"
+              className={cn("ring-1", typeBadgeClass[entry.type])}
+            >
+              {entryTypeLabel(entry.type)}
+            </Badge>
+          </EntryDetailTrigger>
         </TableCell>
         <TableCell
           className={cn(
@@ -235,38 +258,48 @@ export function EntryRow({
             displayAmount < 0 && "text-red-700"
           )}
         >
-          {formatYuan(displayAmount)}
+          <EntryDetailTrigger className="text-right font-medium tabular-nums">
+            {formatYuan(displayAmount)}
+          </EntryDetailTrigger>
         </TableCell>
         <TableCell className="max-w-[320px] whitespace-normal">
-          {entry.description}
-        </TableCell>
-        <TableCell>{entry.createdBy.name}</TableCell>
-        <TableCell>
-          <Badge
-            variant="outline"
-            className={cn("ring-1", statusBadgeClass[entry.status])}
-          >
-            {statusLabel(entry.status)}
-          </Badge>
+          <EntryDetailTrigger className="whitespace-normal">
+            {entry.description}
+          </EntryDetailTrigger>
         </TableCell>
         <TableCell>
-          <div className="flex items-center gap-1 text-muted-foreground">
-            {entry.evidences.length > 0 ? (
-              <>
-                <PaperclipIcon className="size-4" />
-                <span className="tabular-nums">{entry.evidences.length}</span>
-              </>
-            ) : (
-              <span>无</span>
-            )}
-          </div>
+          <EntryDetailTrigger>{entry.createdBy.name}</EntryDetailTrigger>
+        </TableCell>
+        <TableCell>
+          <EntryDetailTrigger>
+            <Badge
+              variant="outline"
+              className={cn("ring-1", statusBadgeClass[entry.status])}
+            >
+              {statusLabel(entry.status)}
+            </Badge>
+          </EntryDetailTrigger>
+        </TableCell>
+        <TableCell>
+          <EntryDetailTrigger>
+            <span className="flex items-center gap-1 text-muted-foreground">
+              {entry.evidences.length > 0 ? (
+                <>
+                  <PaperclipIcon className="size-4" />
+                  <span className="tabular-nums">{entry.evidences.length}</span>
+                </>
+              ) : (
+                <span>无</span>
+              )}
+            </span>
+          </EntryDetailTrigger>
         </TableCell>
         {isOwner ? (
-          <TableCell onClick={(event) => event.stopPropagation()}>
+          <TableCell>
             {canReverse ? <ReverseEntryDialog entryId={entry.id} /> : null}
           </TableCell>
         ) : null}
-      </DialogTrigger>
+      </TableRow>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{entry.description}</DialogTitle>
