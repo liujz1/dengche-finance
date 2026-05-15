@@ -195,7 +195,7 @@ ALL_DONE = true (2026-05-09 18:30) — 全部 21 个 task [x] (P0/P1/P2/P3 + T-0
   **怎么改**: 加复杂度校验——至少 8 位, 拦截纯数字 / 常见弱密码(123456/password 等)。中文错误提示。
   **验收**: 弱密码被拒; 强密码可创建; e2e admin-users.spec.ts PASS。
 
-- [!] **T-208 LedgerEvent 补覆盖项目创建/用户管理 + 加 projectId** [P1]
+- [x] **T-208 LedgerEvent 补覆盖项目创建/用户管理 + 加 projectId** [P1] — 2026-05-15 完成
   **背景**: Project.create / 用户创建编辑都没写 LedgerEvent; 且 `ALLOCATION_PLAN_CREATED` 因 entryId 为空, 流水时间线查不到。
   **改哪**: `src/server/projects.ts:53` + `src/server/admin-users.ts` + LedgerEvent 查询
   **怎么改**: (1) 项目创建 / 用户创建 / 用户编辑各补一条 LedgerEvent; (2) 给 LedgerEvent 加可选 `projectId` 字段(这条**需要改 prisma schema, 允许**), 项目级时间线按 projectId 查。

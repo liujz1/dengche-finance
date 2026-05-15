@@ -84,13 +84,32 @@ export async function addPartnerAction(
 
   const passwordHash = await hash(parsed.data.password, 10);
   try {
-    const created = await prisma.user.create({
-      data: {
-        email: parsed.data.email,
-        name: parsed.data.name,
-        passwordHash,
-        role: UserRole.PARTNER,
-      },
+    const created = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email: parsed.data.email,
+          name: parsed.data.name,
+          passwordHash,
+          role: UserRole.PARTNER,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          createdAt: true,
+        },
+      });
+
+      await tx.ledgerEvent.create({
+        data: {
+          eventType: "USER_CREATED",
+          payloadJson: JSON.stringify(user),
+          actorId: session.user.id,
+        },
+      });
+
+      return user;
     });
     revalidatePath("/admin/users");
     return { success: true, userId: created.id };
@@ -120,7 +139,13 @@ export async function editUserAction(
 
   const target = await prisma.user.findUnique({
     where: { id: parsed.data.id },
-    select: { role: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      createdAt: true,
+    },
   });
   if (!target) return { error: "用户不存在" };
   // 不能改 role (避免误操作把 OWNER 降成 PARTNER 或反之)
@@ -134,7 +159,34 @@ export async function editUserAction(
   }
 
   try {
-    await prisma.user.update({ where: { id: parsed.data.id }, data });
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id: parsed.data.id },
+        data,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          createdAt: true,
+        },
+      });
+
+      await tx.ledgerEvent.create({
+        data: {
+          eventType: "USER_UPDATED",
+          payloadJson: JSON.stringify({
+            before: target,
+            after: updated,
+            changedFields: {
+              name: target.name !== updated.name,
+              password: Boolean(parsed.data.newPassword),
+            },
+          }),
+          actorId: session.user.id,
+        },
+      });
+    });
     revalidatePath("/admin/users");
     revalidatePath(`/admin/users/${parsed.data.id}/edit`);
     return { success: true };

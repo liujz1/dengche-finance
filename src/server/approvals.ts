@@ -139,6 +139,7 @@ export async function approveEntryAction(
       prisma.ledgerEvent.create({
         data: {
           entryId: entry.id,
+          projectId: entry.projectId,
           eventType: "ENTRY_APPROVED",
           payloadJson: JSON.stringify(
             makeEventPayload({
@@ -223,6 +224,7 @@ export async function rejectEntryAction(
       prisma.ledgerEvent.create({
         data: {
           entryId: entry.id,
+          projectId: entry.projectId,
           eventType: "ENTRY_REJECTED",
           payloadJson: JSON.stringify(
             makeEventPayload({
@@ -325,6 +327,7 @@ export async function reverseEntryAction(
       await tx.ledgerEvent.create({
         data: {
           entryId: entry.id,
+          projectId: entry.projectId,
           eventType: "ENTRY_REVERSED",
           payloadJson: JSON.stringify(
             makeEventPayload({

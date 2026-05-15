@@ -67,7 +67,18 @@ export default async function EntryAuditPage({
   }
 
   const events = await prisma.ledgerEvent.findMany({
-    where: { entryId },
+    where: {
+      OR: [
+        { entryId },
+        {
+          entryId: null,
+          projectId,
+          eventType: {
+            in: ["ALLOCATION_PLAN_CREATED", "PROJECT_CREATED"],
+          },
+        },
+      ],
+    },
     select: {
       id: true,
       eventType: true,

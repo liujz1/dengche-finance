@@ -50,11 +50,28 @@ export async function createProject(
     };
   }
 
-  const project = await prisma.project.create({
-    data: parsed.data,
-    select: {
-      id: true,
-    },
+  const project = await prisma.$transaction(async (tx) => {
+    const created = await tx.project.create({
+      data: parsed.data,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        active: true,
+        createdAt: true,
+      },
+    });
+
+    await tx.ledgerEvent.create({
+      data: {
+        projectId: created.id,
+        eventType: "PROJECT_CREATED",
+        payloadJson: JSON.stringify(created),
+        actorId: session.user.id,
+      },
+    });
+
+    return created;
   });
 
   redirect(`/projects/${project.id}`);

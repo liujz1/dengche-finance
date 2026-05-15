@@ -193,6 +193,7 @@ export async function createAllocationPlanAction(
       }),
       prisma.ledgerEvent.create({
         data: {
+          projectId: planSnapshot.projectId,
           eventType: "ALLOCATION_PLAN_CREATED",
           payloadJson: JSON.stringify(planSnapshot),
           actorId: session.user.id,

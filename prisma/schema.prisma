@@ -54,8 +54,9 @@ model Project {
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
-  entries     Entry[]
-  allocations AllocationPlan[]
+  entries      Entry[]
+  allocations  AllocationPlan[]
+  ledgerEvents LedgerEvent[]
 }
 
 model Entry {
@@ -130,6 +131,8 @@ model LedgerEvent {
   id          String   @id @default(cuid())
   entryId     String?
   entry       Entry?   @relation(fields: [entryId], references: [id])
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id])
   eventType   String                                   // ENTRY_CREATED | ENTRY_APPROVED | ENTRY_REJECTED | ENTRY_REVERSED
   payloadJson String                                   // SQLite 没原生 Json，用 String 存 JSON.stringify 结果
   actorId     String
@@ -137,5 +140,6 @@ model LedgerEvent {
   occurredAt  DateTime @default(now())
 
   @@index([entryId, occurredAt])
+  @@index([projectId, occurredAt])
   @@index([eventType, occurredAt])
 }
