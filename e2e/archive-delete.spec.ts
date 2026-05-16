@@ -222,4 +222,61 @@ test.describe.serial("T-303 项目归档 + 流水删除", () => {
       page.getByText("服务器续费 ¥88 待审", { exact: true })
     ).toHaveCount(0);
   });
+
+  test("OWNER 删除冲销过的流水时整对一起删", async ({ page }) => {
+    await login(page, BOSS.email, BOSS.password);
+    await page.goto(`/projects/${WINDSURF_ID}`);
+
+    // 先把一条已审核流水反向冲销，制造一对冲销配对
+    await page
+      .getByRole("row")
+      .filter({ hasText: "windsurf 号采购 ¥299" })
+      .getByRole("button", { name: /反向冲销/ })
+      .click();
+    await page.locator('textarea[name="reason"]').fill("e2e冲销原因");
+    await page.getByRole("button", { name: /确认冲销/ }).click();
+    await page.waitForTimeout(3000);
+
+    // 冲销条出现在列表里
+    const reversalRow = page
+      .getByRole("row")
+      .filter({ hasText: "[冲销] windsurf 号采购 ¥299" });
+    await expect(reversalRow).toHaveCount(1);
+
+    // 删除冲销条 —— 应把整对（原始条 + 冲销条）一起删
+    await reversalRow.getByRole("button", { name: /删除流水/ }).click();
+    await page.locator('textarea[name="reason"]').fill("e2e配对删除");
+    await page.getByRole("button", { name: "确认删除" }).click();
+
+    // 删完重定向回本项目页（URL 不变），UI 信号不可靠——直接轮询 DB，
+    // 等配对删除真正落库（原始条 + 冲销条都没了）。
+    await expect
+      .poll(
+        () => {
+          const probe = new Database(databasePath());
+          const orig = probe
+            .prepare("SELECT id FROM Entry WHERE id = ?")
+            .get("seed_entry_windsurf_account_expense");
+          const rev = probe
+            .prepare(
+              "SELECT COUNT(*) AS n FROM Entry WHERE description LIKE ?"
+            )
+            .get("[冲销] windsurf 号采购%") as { n: number };
+          probe.close();
+          return orig === undefined && rev.n === 0;
+        },
+        { timeout: 10_000 }
+      )
+      .toBe(true);
+
+    // 配对的两条各留一条 ENTRY_DELETED 审计
+    const db = new Database(databasePath());
+    const deletedEvents = db
+      .prepare(
+        "SELECT COUNT(*) AS n FROM LedgerEvent WHERE eventType = 'ENTRY_DELETED' AND payloadJson LIKE ?"
+      )
+      .get("%e2e配对删除%") as { n: number };
+    db.close();
+    expect(deletedEvents.n).toBe(2);
+  });
 });

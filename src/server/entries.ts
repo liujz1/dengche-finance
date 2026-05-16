@@ -693,18 +693,8 @@ export async function deleteEntryAction(
       id: parsed.data.entryId,
     },
     include: {
-      evidences: {
-        select: {
-          r2Key: true,
-          mimeType: true,
-          sizeBytes: true,
-        },
-      },
-      reversal: {
-        select: {
-          id: true,
-        },
-      },
+      reversal: { select: { id: true } },
+      reversedFrom: { select: { id: true } },
     },
   });
 
@@ -712,44 +702,61 @@ export async function deleteEntryAction(
     return { error: "流水不存在" };
   }
 
-  if (entry.reversedFromId || entry.reversal) {
-    return { error: "已冲销的流水请先处理冲销配对, 不能单独删除" };
+  // 冲销配对：若这条流水属于一对冲销（它是被冲销的原始条，或它本身是冲销条），
+  // 把整对一起删——只删一半会让账面对不上、审计链断裂。
+  const idsToDelete = [entry.id];
+  if (entry.reversal) {
+    idsToDelete.push(entry.reversal.id);
+  }
+  if (entry.reversedFrom) {
+    idsToDelete.push(entry.reversedFrom.id);
   }
 
-  const deletedPayload = {
-    entry: entrySnapshot(entry),
-    evidences: entry.evidences,
-    reason: parsed.data.reason,
-    actorId: session.user.id,
-  };
+  const entriesToDelete = await prisma.entry.findMany({
+    where: { id: { in: idsToDelete } },
+    include: {
+      evidences: {
+        select: { r2Key: true, mimeType: true, sizeBytes: true },
+      },
+    },
+  });
 
   try {
     await prisma.$transaction([
-      prisma.ledgerEvent.create({
-        data: {
-          projectId: entry.projectId,
-          eventType: "ENTRY_DELETED",
-          payloadJson: JSON.stringify(deletedPayload),
-          actorId: session.user.id,
-        },
+      // 1. 为每条被删流水写 ENTRY_DELETED 留痕（含完整快照 + 凭证清单）
+      ...entriesToDelete.map((item) =>
+        prisma.ledgerEvent.create({
+          data: {
+            projectId: item.projectId,
+            eventType: "ENTRY_DELETED",
+            payloadJson: JSON.stringify({
+              entry: entrySnapshot(item),
+              evidences: item.evidences,
+              reason: parsed.data.reason,
+              actorId: session.user.id,
+              pairedDelete: entriesToDelete.length > 1,
+            }),
+            actorId: session.user.id,
+          },
+        })
+      ),
+      // 2. 断开冲销条的自引用外键，否则删除时外键冲突
+      prisma.entry.updateMany({
+        where: { id: { in: idsToDelete }, reversedFromId: { not: null } },
+        data: { reversedFromId: null },
       }),
+      // 3. 历史事件 entryId 置空（payload 快照保留，审计内容不丢）
       prisma.ledgerEvent.updateMany({
-        where: {
-          entryId: entry.id,
-        },
-        data: {
-          entryId: null,
-        },
+        where: { entryId: { in: idsToDelete } },
+        data: { entryId: null },
       }),
+      // 4. 删凭证
       prisma.evidence.deleteMany({
-        where: {
-          entryId: entry.id,
-        },
+        where: { entryId: { in: idsToDelete } },
       }),
-      prisma.entry.delete({
-        where: {
-          id: entry.id,
-        },
+      // 5. 删流水
+      prisma.entry.deleteMany({
+        where: { id: { in: idsToDelete } },
       }),
     ]);
   } catch (error) {
