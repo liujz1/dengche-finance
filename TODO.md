@@ -247,6 +247,55 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
 
 ---
 
+## 老板需求单 (2026-05-16) — 项目归档 + 流水删除
+
+> 来源: 老板 2026-05-16 需求单。老板实测——账本无法清理不要的项目(如重复的中转代理), 流水也删不掉(测试流水留在账上)。
+> 老板已就两个决策点拍板: 项目=只做归档(数据保留可恢复, 不硬删); 流水删除=OWNER 可硬删任意状态(含已审核通过)。
+> ⚠️ T-301/T-302 是对信任三锚第 3 条"审过的不能删"的**老板授权例外**——仅 OWNER、仅带原因、全程留痕。
+> 顺序: T-300 → T-301 → T-302 → T-303。T-302 依赖 T-301 先完成。
+
+- [ ] **T-300 项目归档功能 (归档 / 恢复)** [P1·老板需求单]
+  **背景**: 账本里有重复或不要的项目(如重复的中转代理), 界面无任何"删除/隐藏项目"入口, 老板无法清理。Project 表已有 `active` 字段(默认 true), 归档 = 置 `active=false`。老板拍板: 只做归档(数据保留、可恢复), 不做硬删除。
+  **改哪**: `src/server/projects.ts` (新增 action) + `src/app/(app)/projects/[id]/page.tsx` (归档/恢复按钮) + `src/app/(app)/projects/page.tsx` (已归档视图)
+  **怎么改**:
+  1. server action `setProjectArchivedAction(_prev, formData)`: 读 `id` + `archived`(布尔)。OWNER 校验(非 OWNER 返回"只有老板可以归档项目")。事务内 `project.update` 设 `active = !archived`, 并写一条 `LedgerEvent`(eventType `PROJECT_ARCHIVED` 或 `PROJECT_RESTORED`, payloadJson 含项目 before/after 快照, actorId, projectId)。revalidatePath `/projects` + `/projects/[id]`。
+  2. 项目详情页加 OWNER-only "归档项目"按钮(危险样式) + 二次确认(文案: 归档后项目从列表和录入选项消失、数据保留、可恢复)。已归档项目改显示"恢复项目"按钮。
+  3. 项目列表页 `projects/page.tsx` 现 where `active:true`: 加一个 OWNER-only 入口(query param `?archived=1` 或 tab)查看已归档项目并从那里恢复。合伙人看不到此入口。
+  **约束**: 不碰 prisma schema(`active` 字段已存在) / 不改 `getMyProjects`(已过滤 active:true, 归档项目自动从录入下拉消失) / 不装新依赖 / 不 push。
+  **验收**: OWNER 归档后项目从 /projects 列表和录入页项目下拉消失; OWNER 能在已归档视图看到并恢复; 合伙人看不到归档按钮和已归档项目; 归档/恢复在项目时间线留 LedgerEvent; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
+
+- [ ] **T-301 流水删除 — server action (含 immutable log 留痕)** [P1·老板需求单]
+  **背景**: 中转代理项目里有测试流水要清掉, 现流水只能"反向冲销"不能删。老板拍板: OWNER 可硬删任意状态流水(含已审核通过), 删除动作必须在 immutable log 留痕。这是对信任三锚第 3 条的老板授权例外。
+  **改哪**: `src/server/entries.ts` — 新增 `deleteEntryAction`
+  **怎么改**:
+  1. `deleteEntryAction(_prev, formData)`: 读 `entryId` + `reason`(必填, trim, 1–200 字, zod 校验)。OWNER 校验, 非 OWNER 返回"只有老板可以删除流水"。
+  2. 查 entry(include evidences + reversal 关系 + reversedFromId)。不存在 → 返回错误。
+  3. **冲销配对保护**: 若该 entry 是冲销条(`reversedFromId != null`)或已被冲销(存在 `reversal`) → 返回"已冲销的流水请先处理冲销配对, 不能单独删除"。本工单不处理冲销配对级联删除, 避免审计链断裂。可删状态: PENDING / REJECTED / APPROVED(未参与任何冲销)。
+  4. 事务内按序: (a) 先写 `LedgerEvent`, eventType `ENTRY_DELETED`, payloadJson 含被删 entry 完整快照 + 关联 evidence 的 r2Key/mimeType/sizeBytes 列表 + 删除原因 + 删除人, projectId 填该 entry 的 projectId, **entryId 留空**(避免外键悬空); (b) `ledgerEvent.updateMany where entryId=该id` 把历史事件 `entryId` 置 null(payloadJson 快照不动, 只断外键); (c) `evidence.deleteMany where entryId`; (d) 删 Entry 行。
+  5. revalidatePath `/projects/[projectId]` + `/approvals` + `/me`。
+  6. 物理上传文件(uploads 目录)本工单**不删**, 留作孤儿——删文件不可逆, 清理是独立低优任务。
+  **约束**: 不碰 prisma schema / 不装新依赖 / 不 push。
+  **验收**: OWNER 调用后该流水从项目流水列表、盈亏合计、趋势曲线消失(合计自动重算); 项目时间线留 `ENTRY_DELETED` 事件含完整快照+原因; 冲销配对流水尝试删除被拒; 非 OWNER 调用被拒; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
+
+- [ ] **T-302 流水删除 — UI (详情页删除按钮 + 确认 + 原因)** [P1·老板需求单·依赖 T-301]
+  **背景**: 配合 T-301, 给 OWNER 在流水详情页删除入口。
+  **改哪**: `src/app/(app)/projects/[id]/[entryId]/page.tsx` + 可新建 client 组件 `delete-entry-dialog.tsx`
+  **怎么改**:
+  1. 仅 OWNER 可见"删除流水"按钮(危险样式), 放流水详情页操作区。
+  2. 点击弹确认对话框: 必填删除原因(textarea), 文案警告"删除后该流水及其凭证将被移除、盈亏与趋势曲线重新计算, 此操作不可恢复(操作会记入日志)"。
+  3. 确认调 `deleteEntryAction`; 成功 toast + router.push 回 `/projects/[projectId]`; 失败显示后端中文错误。
+  4. 沿用现有 useActionState + startTransition 写法(参考反向冲销弹窗), 不要触发 T-213 修过的 transition 警告。
+  **约束**: 不碰 prisma schema / 不碰 server 逻辑(那是 T-301) / 不装新依赖 / 不 push。
+  **验收**: OWNER 在流水详情看到删除按钮、合伙人看不到; 走完删除流程流水消失并跳回项目页; 不填原因不能提交; dev 模式控制台该页 0 报错; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
+
+- [ ] **T-303 e2e — 项目归档 + 流水删除** [P1·老板需求单·依赖 T-300~302]
+  **背景**: 两个新功能要 e2e 覆盖, 沿用 `e2e/` 现有 spec 模式。
+  **怎么改**: 新建 spec 覆盖: (1) OWNER 归档项目后该项目从列表/录入下拉消失、能恢复; (2) OWNER 删除一条流水后项目盈亏合计相应变化、`ENTRY_DELETED` 在 DB 有记录; (3) PARTNER 账号看不到归档按钮和删除按钮。dev server 用 PORT=3002。
+  **约束**: 不碰 prisma schema / 不装新依赖 / 不 push。
+  **验收**: 新 spec 全绿; 全套 e2e 仍全绿; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
+
+---
+
 ## Codex 工作约束 (必读 - v2.1)
 
 - **每次循环开始**: `git pull origin main` 拿最新 TODO.md (dengche 已 push)
