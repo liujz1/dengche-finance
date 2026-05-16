@@ -174,12 +174,20 @@ export default async function ProjectDetailPage({
 
         <div className="flex flex-wrap gap-2">
           {isOwner ? (
-            <Link
-              href={`/allocations?projectId=${project.id}`}
-              className={cn(buttonVariants({ variant: "outline" }))}
-            >
-              管理分配方案
-            </Link>
+            <>
+              <Link
+                href={`/projects/${project.id}/edit`}
+                className={cn(buttonVariants({ variant: "outline" }))}
+              >
+                编辑
+              </Link>
+              <Link
+                href={`/allocations?projectId=${project.id}`}
+                className={cn(buttonVariants({ variant: "outline" }))}
+              >
+                管理分配方案
+              </Link>
+            </>
           ) : null}
           <Link
             href={`/entries/new?projectId=${project.id}`}
