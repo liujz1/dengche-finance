@@ -311,7 +311,12 @@ export default async function ProjectDetailPage({
               </TableHeader>
               <TableBody>
                 {entries.map((entry) => (
-                  <EntryRow key={entry.id} entry={entry} isOwner={isOwner} />
+                  <EntryRow
+                    key={entry.id}
+                    entry={entry}
+                    isOwner={isOwner}
+                    projectId={project.id}
+                  />
                 ))}
               </TableBody>
             </Table>

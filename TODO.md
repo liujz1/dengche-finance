@@ -331,6 +331,10 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
   **约束**: 不碰 prisma schema / 不碰 server 逻辑 / 不装新依赖(用原生 HTML5 drag & drop API) / 不 push。依赖 T-305 先完成(同一上传组件)。
   **验收**: 桌面浏览器把图片拖进凭证区能成功加入并预览; 点击浏览仍可用; 拖非图片文件被拒并提示; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
 
+- [x] **T-307 删除按钮放进流水列表（修 T-302 按钮不可达）** [P0·老板实测] — 2026-05-16 完成
+  **背景**: 老板实测找不到删除流水的入口。根因——T-302 把"删除流水"按钮只放在 `/projects/[id]/[entryId]` 流水详情页, 而该页从流水列表没有任何链接可达, 功能等于藏起来。
+  **改**: delete-entry-dialog 移到 `src/components/`; 在 entry-row 的 OWNER 操作格加"删除流水"按钮(与反向冲销并列); 项目详情页流水列表每行(仅 OWNER)直接可删。补行内删除 e2e。全套 22 e2e 全绿。
+
 ---
 
 ## Codex 工作约束 (必读 - v2.1)

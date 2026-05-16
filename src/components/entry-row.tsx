@@ -25,6 +25,7 @@ import { getEvidencePublicUrl } from "@/lib/evidence-url";
 import { entryTypeLabel, formatDate, formatYuan } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { reverseEntryAction, type ReverseEntryState } from "@/server/entries";
+import { DeleteEntryDialog } from "@/components/delete-entry-dialog";
 
 type EntryRowEvidence = {
   id: string;
@@ -222,9 +223,11 @@ function ReverseEntryDialog({ entryId }: { entryId: string }) {
 export function EntryRow({
   entry,
   isOwner,
+  projectId,
 }: {
   entry: EntryRowEntry;
   isOwner?: boolean;
+  projectId: string;
 }) {
   const displayAmount = signedDisplayAmountCents(entry);
   const canReverse = entry.status === "APPROVED" && isOwner && !entry.reversedFromId;
@@ -290,7 +293,10 @@ export function EntryRow({
         </TableCell>
         {isOwner ? (
           <TableCell>
-            {canReverse ? <ReverseEntryDialog entryId={entry.id} /> : null}
+            <div className="flex flex-wrap gap-1">
+              {canReverse ? <ReverseEntryDialog entryId={entry.id} /> : null}
+              <DeleteEntryDialog entryId={entry.id} projectId={projectId} />
+            </div>
           </TableCell>
         ) : null}
       </TableRow>

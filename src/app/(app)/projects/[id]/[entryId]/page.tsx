@@ -14,7 +14,7 @@ import { signedDisplayAmountCents } from "@/lib/amount";
 import { prisma } from "@/lib/db";
 import { formatDate, formatYuan } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { DeleteEntryDialog } from "./delete-entry-dialog";
+import { DeleteEntryDialog } from "@/components/delete-entry-dialog";
 
 const eventTypeLabel: Record<string, string> = {
   ENTRY_CREATED: "创建",

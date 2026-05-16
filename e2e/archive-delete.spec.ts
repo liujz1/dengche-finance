@@ -203,4 +203,23 @@ test.describe.serial("T-303 项目归档 + 流水删除", () => {
     await page.goto(`/projects/${IMAGE2_ID}/seed_entry_image2_taobao_income`);
     await expect(page.getByRole("button", { name: /删除流水/ })).toHaveCount(0);
   });
+
+  test("OWNER 在项目流水列表行内直接删除流水", async ({ page }) => {
+    await login(page, BOSS.email, BOSS.password);
+    await page.goto(`/projects/${WINDSURF_ID}`);
+
+    const targetRow = page
+      .getByRole("row")
+      .filter({ hasText: "服务器续费 ¥88 待审" });
+    await expect(targetRow).toHaveCount(1);
+
+    await targetRow.getByRole("button", { name: /删除流水/ }).click();
+    await page.locator('textarea[name="reason"]').fill("e2e 行内删除测试");
+    await page.getByRole("button", { name: "确认删除" }).click();
+    await page.waitForURL(`/projects/${WINDSURF_ID}`, { timeout: 10_000 });
+
+    await expect(
+      page.getByText("服务器续费 ¥88 待审", { exact: true })
+    ).toHaveCount(0);
+  });
 });
