@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -12,6 +13,8 @@ import {
 import { signedDisplayAmountCents } from "@/lib/amount";
 import { prisma } from "@/lib/db";
 import { formatDate, formatYuan } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { DeleteEntryDialog } from "./delete-entry-dialog";
 
 const eventTypeLabel: Record<string, string> = {
   ENTRY_CREATED: "创建",
@@ -40,8 +43,35 @@ export default async function EntryAuditPage({
     redirect("/login");
   }
 
+  const isOwner = session.user.role === "OWNER";
   const entry = await prisma.entry.findFirst({
-    where: { id: entryId, projectId },
+    where: {
+      id: entryId,
+      projectId,
+      ...(isOwner
+        ? {}
+        : {
+            OR: [
+              {
+                createdById: session.user.id,
+              },
+              {
+                project: {
+                  active: true,
+                  allocations: {
+                    some: {
+                      shares: {
+                        some: {
+                          userId: session.user.id,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          }),
+    },
     select: {
       id: true,
       description: true,
@@ -83,12 +113,25 @@ export default async function EntryAuditPage({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-normal">流水审计时间线</h1>
-        <p className="text-sm text-muted-foreground">
-          {entry.project.name} · {entry.description} ·{" "}
-          {formatYuan(signedDisplayAmountCents(entry))}
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-normal">流水审计时间线</h1>
+          <p className="text-sm text-muted-foreground">
+            {entry.project.name} · {entry.description} ·{" "}
+            {formatYuan(signedDisplayAmountCents(entry))}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a
+            href={`/projects/${projectId}`}
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            返回项目
+          </a>
+          {isOwner ? (
+            <DeleteEntryDialog entryId={entry.id} projectId={projectId} />
+          ) : null}
+        </div>
       </div>
 
       <Card>
