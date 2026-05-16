@@ -58,6 +58,11 @@ const reverseEntrySchema = z.object({
   reason: z.string().trim().min(1, "原因不能为空").max(200, "原因最多 200 个字"),
 });
 
+const deleteEntrySchema = z.object({
+  entryId: entryIdSchema,
+  reason: z.string().trim().min(1, "原因不能为空").max(200, "原因最多 200 个字"),
+});
+
 export type CreateEntryState = {
   success?: boolean;
   entryId?: string;
@@ -72,6 +77,12 @@ export type EntryApprovalState = {
 
 export type ReverseEntryState = {
   success?: boolean;
+  error?: string;
+};
+
+export type DeleteEntryState = {
+  success?: boolean;
+  projectId?: string;
   error?: string;
 };
 
@@ -120,6 +131,10 @@ function pendingEntryEventPayload(entry: EntryEventSource) {
     reversedFromId: entry.reversedFromId,
     createdAt: entry.createdAt,
   };
+}
+
+function entrySnapshot(entry: EntryEventSource) {
+  return pendingEntryEventPayload(entry);
 }
 
 function getProjectAccessWhere(projectId: string, user: SessionUser) {
@@ -607,4 +622,99 @@ export async function reverseEntryAction(
   revalidatePath("/approvals");
 
   return { success: true };
+}
+
+export async function deleteEntryAction(
+  _prevState: DeleteEntryState,
+  formData: FormData
+): Promise<DeleteEntryState> {
+  const session = await auth();
+
+  if (!session?.user?.id || session.user.role !== "OWNER") {
+    return { error: "只有老板可以删除流水" };
+  }
+
+  const parsed = deleteEntrySchema.safeParse({
+    entryId: formData.get("entryId"),
+    reason: formData.get("reason"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "请检查输入" };
+  }
+
+  const entry = await prisma.entry.findUnique({
+    where: {
+      id: parsed.data.entryId,
+    },
+    include: {
+      evidences: {
+        select: {
+          r2Key: true,
+          mimeType: true,
+          sizeBytes: true,
+        },
+      },
+      reversal: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  if (!entry) {
+    return { error: "流水不存在" };
+  }
+
+  if (entry.reversedFromId || entry.reversal) {
+    return { error: "已冲销的流水请先处理冲销配对, 不能单独删除" };
+  }
+
+  const deletedPayload = {
+    entry: entrySnapshot(entry),
+    evidences: entry.evidences,
+    reason: parsed.data.reason,
+    actorId: session.user.id,
+  };
+
+  try {
+    await prisma.$transaction([
+      prisma.ledgerEvent.create({
+        data: {
+          projectId: entry.projectId,
+          eventType: "ENTRY_DELETED",
+          payloadJson: JSON.stringify(deletedPayload),
+          actorId: session.user.id,
+        },
+      }),
+      prisma.ledgerEvent.updateMany({
+        where: {
+          entryId: entry.id,
+        },
+        data: {
+          entryId: null,
+        },
+      }),
+      prisma.evidence.deleteMany({
+        where: {
+          entryId: entry.id,
+        },
+      }),
+      prisma.entry.delete({
+        where: {
+          id: entry.id,
+        },
+      }),
+    ]);
+  } catch (error) {
+    console.error("delete entry failed", error);
+    return { error: "删除流水失败" };
+  }
+
+  revalidatePath(`/projects/${entry.projectId}`);
+  revalidatePath("/approvals");
+  revalidatePath("/me");
+
+  return { success: true, projectId: entry.projectId };
 }
