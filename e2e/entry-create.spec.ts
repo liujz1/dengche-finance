@@ -1,3 +1,4 @@
+import Database from "better-sqlite3";
 import { test, expect } from "@playwright/test";
 
 const PARTNER_A = { email: "partner-a@dengche.local", password: "partnera123" };
@@ -71,4 +72,51 @@ test("T-002: partner-a 录入新流水 e2e", async ({ page }) => {
   // 过滤 dev 环境已知 404 (无 R2 credentials, evidence image fetch 自然 fail) - 非业务 bug
   const realErrors = consoleErrors.filter((e) => !e.includes("404") && !e.includes("Not Found"));
   expect(realErrors, `客户端报错:\n${realErrors.join("\n")}`).toEqual([]);
+});
+
+
+function databasePath() {
+  const databaseUrl = process.env.DATABASE_URL ?? "file:./dev.db";
+  return databaseUrl.startsWith("file:") ? databaseUrl.slice(5) : databaseUrl;
+}
+
+test("T-305: partner-a 一次录入多张凭证", async ({ page }) => {
+  await loginAsPartnerA(page);
+  await page.goto("/entries/new");
+  await expect(page).toHaveURL(/\/entries\/new/);
+
+  await page.getByRole("combobox").first().click();
+  await page.getByRole("option", { name: /image2/i }).click();
+  await page.getByRole("combobox").nth(1).click();
+  await page.getByRole("option", { name: /支出/ }).click();
+  await page.getByLabel(/^金额/).fill("66.00");
+
+  const desc = `e2e 多图测试 ${Date.now()}`;
+  await page.getByLabel(/描述/).fill(desc);
+
+  const today = new Date().toISOString().slice(0, 10);
+  await page.locator("input#occurredAt").fill(today);
+
+  await page.locator('input[type="file"]').setInputFiles([
+    { name: "a.png", mimeType: "image/png", buffer: TINY_PNG_BUFFER },
+    { name: "b.png", mimeType: "image/png", buffer: TINY_PNG_BUFFER },
+    { name: "c.png", mimeType: "image/png", buffer: TINY_PNG_BUFFER },
+  ]);
+
+  // 三张图都进了预览列表（每张一个"删除"按钮）
+  await expect(page.getByRole("button", { name: "删除" })).toHaveCount(3);
+
+  await page.waitForTimeout(200);
+  await page.getByRole("button", { name: "提交审核" }).click();
+  await page.waitForURL(/\/projects\//, { timeout: 15_000 });
+
+  // DB 校验：该流水挂了 3 条 Evidence
+  const db = new Database(databasePath());
+  const row = db
+    .prepare(
+      "SELECT COUNT(*) AS n FROM Evidence e JOIN Entry en ON e.entryId = en.id WHERE en.description = ?"
+    )
+    .get(desc) as { n: number };
+  db.close();
+  expect(row.n).toBe(3);
 });

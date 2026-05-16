@@ -14,6 +14,14 @@ import { saveUploadedFile } from "@/lib/upload";
 
 const MAX_ENTRY_AMOUNT_CENTS = 2_000_000_000;
 const MAX_ENTRY_AMOUNT_MESSAGE = "单笔金额不能超过 2000 万元";
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_EVIDENCE_FILES = 9;
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+]);
 
 const entryFormSchema = z.object({
   projectId: z.string().min(1, "请选择项目"),
@@ -110,6 +118,36 @@ type EntryEventSource = {
 
 function isFile(value: FormDataEntryValue | null): value is File {
   return value instanceof File;
+}
+
+function validateEvidenceFiles(values: FormDataEntryValue[]) {
+  const files = values.filter(isFile).filter((file) => file.size > 0);
+
+  if (files.length < 1 || files.length > MAX_EVIDENCE_FILES) {
+    return {
+      error: "请上传 1~9 张凭证图片",
+      files: [],
+    };
+  }
+
+  if (files.some((file) => !ALLOWED_MIME_TYPES.has(file.type))) {
+    return {
+      error: "凭证必须是 jpeg、png、webp 或 heic 图片",
+      files: [],
+    };
+  }
+
+  if (files.some((file) => file.size > MAX_FILE_SIZE_BYTES)) {
+    return {
+      error: "凭证图片不能超过 5MB",
+      files: [],
+    };
+  }
+
+  return {
+    error: null,
+    files,
+  };
 }
 
 function createCuidLikeId() {
@@ -233,16 +271,20 @@ export async function createEntryAction(
     return { error: "无权访问此项目" };
   }
 
-  const evidence = formData.get("evidence");
+  const evidenceResult = validateEvidenceFiles(formData.getAll("evidence"));
 
-  if (!isFile(evidence) || evidence.size === 0) {
-    return { error: "请上传一张凭证图片" };
+  if (evidenceResult.error) {
+    return { error: evidenceResult.error };
   }
 
-  let savedEvidence: Awaited<ReturnType<typeof saveUploadedFile>>;
+  let savedEvidences: Awaited<ReturnType<typeof saveUploadedFile>>[];
 
   try {
-    savedEvidence = await saveUploadedFile(evidence, "evidences");
+    savedEvidences = [];
+
+    for (const evidence of evidenceResult.files) {
+      savedEvidences.push(await saveUploadedFile(evidence, "evidences"));
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "凭证上传失败";
 
@@ -273,14 +315,16 @@ export async function createEntryAction(
       prisma.entry.create({
         data: entrySnapshot,
       }),
-      prisma.evidence.create({
-        data: {
-          entryId: entrySnapshot.id,
-          r2Key: savedEvidence.key,
-          mimeType: savedEvidence.mime,
-          sizeBytes: savedEvidence.size,
-        },
-      }),
+      ...savedEvidences.map((savedEvidence) =>
+        prisma.evidence.create({
+          data: {
+            entryId: entrySnapshot.id,
+            r2Key: savedEvidence.key,
+            mimeType: savedEvidence.mime,
+            sizeBytes: savedEvidence.size,
+          },
+        })
+      ),
       prisma.ledgerEvent.create({
         data: {
           entryId: entrySnapshot.id,

@@ -312,7 +312,8 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
   **约束**: 不碰 prisma schema / 不装新依赖 / 不 push。测试库=本地 dev.db, 生产库不受影响。
   **验收**: 连跑两遍 `pnpm exec playwright test` 都 20/20 全绿(第二遍不受第一遍污染); `npx tsc --noEmit` 绿。
 
-- [ ] **T-305 凭证支持一次传多张图片** [P1·老板需求单·体验红线]
+- [x] **T-305 凭证支持一次传多张图片** [P1·老板需求单·体验红线] — 2026-05-16 完成
+  **完成**: 录入表单凭证 input 加 multiple + 多图预览可单张删除; createEntryAction 用 getAll('evidence') 循环存多张、每张建一条 Evidence。dengche 验收时修一个真 bug——codex 原用 DataTransfer 把文件写回原生 input 作提交源, 该写回不可靠(e2e 实测提交时 input 为空、卡在'请上传凭证'); 改为以 evidencePreviews 状态为提交真相源。补多图录入 e2e 用例(实传 3 张、DB 验证 3 条 Evidence)。全套 21 e2e 全绿。
   **背景**: 合伙人反馈一条流水只能传一张凭证太少。Evidence 表本就是 Entry 一对多(schema 已支持多张), 显示侧(审核弹窗 approval-dialog:236、流水行 entry-row:308)也已 `.map()` 渲染数组——只差放开录入这一端。
   **改哪**: `src/app/(app)/entries/new/new-entry-form.tsx` + `src/server/entries.ts` createEntryAction
   **怎么改**:
@@ -322,7 +323,8 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
   **约束**: 不碰 prisma schema(Evidence 一对多已就绪) / 不装新依赖 / 不 push。显示侧已支持多张, 不用改 approval-dialog / entry-row / 流水详情页。
   **验收**: 录入页能选多张、能预览能删单张; 提交后流水详情和审核弹窗能看到全部凭证图; 只传 1 张仍正常; 0 张被拦; e2e 补一条多图录入用例; 全套 e2e 全绿; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
 
-- [ ] **T-306 凭证支持拖拽上传(桌面端)** [P1·老板需求单·体验红线·依赖 T-305]
+- [x] **T-306 凭证支持拖拽上传(桌面端)** [P1·老板需求单·体验红线·依赖 T-305] — 2026-05-16 完成
+  **完成**: 凭证区做成 dashed dropzone, 原生 HTML5 drag&drop, 拖入图片(可多张)进预览列表、悬停有视觉反馈, 保留点击选择。拖拽与点击共用 addEvidenceFiles→evidencePreviews 状态同一路径(该路径已被 T-305 多图 e2e 覆盖)。tsc + build 绿。桌面浏览器拖拽留老板实测。
   **背景**: 合伙人反馈桌面端只能"浏览文件夹"选图很麻烦, 想直接把图片拖进表单。(手机端点一下选相册/相机已够用, 本工单针对桌面。)
   **改哪**: `src/app/(app)/entries/new/new-entry-form.tsx` 的凭证上传区
   **怎么改**: 把凭证区域做成一个拖拽放置区(dashed border 的 dropzone): 支持把一张或多张图片拖进去→加入已选列表; 拖拽悬停时有视觉反馈; 同时保留原「点击浏览选择」入口(两种方式都能用)。拖入文件走和 T-305 同一套校验(1~9 张、类型、大小)。纯前端, 不碰 server。

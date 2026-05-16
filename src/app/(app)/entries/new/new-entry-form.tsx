@@ -3,7 +3,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useTransition } from "react";
+import {
+  type ChangeEvent,
+  type DragEvent,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { useFormStatus } from "react-dom";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -46,6 +54,7 @@ type NewEntryFormProps = {
 };
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_EVIDENCE_FILES = 9;
 const MAX_ENTRY_AMOUNT_CENTS = 2_000_000_000;
 const MAX_ENTRY_AMOUNT_YUAN = MAX_ENTRY_AMOUNT_CENTS / 100;
 const MAX_ENTRY_AMOUNT_MESSAGE = "单笔金额不能超过 2000 万元";
@@ -87,39 +96,40 @@ const entryFormSchema = z.object({
     .min(1, "描述不能为空")
     .max(200, "描述最多 200 个字"),
   occurredAt: z.string().min(1, "请选择发生时间"),
-  evidence: z
-    .custom<FileList>()
-    .refine((files) => files?.length === 1, "请上传一张凭证图片")
-    .refine((files) => {
-      const file = files?.item(0);
-      return file ? ALLOWED_MIME_TYPES.has(file.type) : false;
-    }, "凭证必须是 jpeg、png、webp 或 heic 图片")
-    .refine((files) => {
-      const file = files?.item(0);
-      return file ? file.size <= MAX_FILE_SIZE_BYTES : false;
-    }, "凭证图片不能超过 5MB"),
 });
 
 type EntryFormValues = z.infer<typeof entryFormSchema>;
 
 const initialState: CreateEntryState = {};
 
+type EvidencePreview = {
+  id: string;
+  file: File;
+  url: string;
+};
+
 function todayString() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function validateEvidenceFile(formData: FormData) {
-  const evidence = formData.get("evidence");
+function createEvidencePreview(file: File): EvidencePreview {
+  return {
+    id: `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID()}`,
+    file,
+    url: URL.createObjectURL(file),
+  };
+}
 
-  if (!(evidence instanceof File) || evidence.size === 0) {
-    return "请上传一张凭证图片";
+function validateEvidenceFiles(files: File[]) {
+  if (files.length < 1 || files.length > MAX_EVIDENCE_FILES) {
+    return "请上传 1~9 张凭证图片";
   }
 
-  if (!ALLOWED_MIME_TYPES.has(evidence.type)) {
+  if (files.some((file) => !ALLOWED_MIME_TYPES.has(file.type))) {
     return "凭证必须是 jpeg、png、webp 或 heic 图片";
   }
 
-  if (evidence.size > MAX_FILE_SIZE_BYTES) {
+  if (files.some((file) => file.size > MAX_FILE_SIZE_BYTES)) {
     return "凭证图片不能超过 5MB";
   }
 
@@ -147,6 +157,13 @@ export function NewEntryForm({
   const [, startTransition] = useTransition();
   const router = useRouter();
   const lastErrorRef = useRef<string | undefined>(undefined);
+  const evidenceInputRef = useRef<HTMLInputElement | null>(null);
+  const evidencePreviewsRef = useRef<EvidencePreview[]>([]);
+  const [evidencePreviews, setEvidencePreviews] = useState<EvidencePreview[]>(
+    []
+  );
+  const [isDraggingEvidence, setIsDraggingEvidence] = useState(false);
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
   const safeDefaultProjectId = projects.some(
     (project) => project.id === defaultProjectId
   )
@@ -173,6 +190,99 @@ export function NewEntryForm({
   const selectedType = watch("type");
 
   useEffect(() => {
+    return () => {
+      evidencePreviewsRef.current.forEach((preview) =>
+        URL.revokeObjectURL(preview.url)
+      );
+    };
+  }, []);
+
+  function replaceEvidencePreviews(nextPreviews: EvidencePreview[]) {
+    setEvidencePreviews((currentPreviews) => {
+      currentPreviews
+        .filter(
+          (preview) =>
+            !nextPreviews.some((nextPreview) => nextPreview.id === preview.id)
+        )
+        .forEach((preview) => URL.revokeObjectURL(preview.url));
+
+      evidencePreviewsRef.current = nextPreviews;
+      return nextPreviews;
+    });
+  }
+
+  function addEvidenceFiles(fileList: FileList | File[]) {
+    const files = Array.from(fileList).filter((file) => file.size > 0);
+
+    if (files.length === 0) {
+      return;
+    }
+
+    const nextFiles = [
+      ...evidencePreviews.map((preview) => preview.file),
+      ...files,
+    ];
+    const error = validateEvidenceFiles(nextFiles);
+
+    if (error) {
+      setEvidenceError(error);
+      toast.error(error);
+      return;
+    }
+
+    setEvidenceError(null);
+    replaceEvidencePreviews([
+      ...evidencePreviews,
+      ...files.map(createEvidencePreview),
+    ]);
+  }
+
+  function removeEvidencePreview(id: string) {
+    replaceEvidencePreviews(
+      evidencePreviews.filter((preview) => preview.id !== id)
+    );
+  }
+
+  function handleEvidenceChange(event: ChangeEvent<HTMLInputElement>) {
+    if (event.target.files) {
+      addEvidenceFiles(event.target.files);
+    }
+    // 清空原生 input —— 提交以 evidencePreviews 状态为准；
+    // 清空后同一文件可再次选择（change 事件能再次触发）。
+    event.target.value = "";
+  }
+
+  function handleEvidenceDragOver(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!pending) {
+      event.dataTransfer.dropEffect = "copy";
+      setIsDraggingEvidence(true);
+    }
+  }
+
+  function handleEvidenceDragLeave(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      setIsDraggingEvidence(false);
+    }
+  }
+
+  function handleEvidenceDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDraggingEvidence(false);
+
+    if (pending) {
+      return;
+    }
+
+    addEvidenceFiles(event.dataTransfer.files);
+  }
+
+  useEffect(() => {
     if (state.error && state.error !== lastErrorRef.current) {
       toast.error(state.error);
       lastErrorRef.current = state.error;
@@ -189,13 +299,19 @@ export function NewEntryForm({
   return (
     <form
       action={async (formData) => {
-        const evidenceError = validateEvidenceFile(formData);
+        // 提交真相源 = evidencePreviews 状态（原生 input.files 在拖拽场景不可靠）
+        const evidenceFiles = evidencePreviews.map((preview) => preview.file);
+        const evidenceErr = validateEvidenceFiles(evidenceFiles);
 
-        if (evidenceError) {
-          toast.error(evidenceError);
-          await trigger("evidence");
+        if (evidenceErr) {
+          setEvidenceError(evidenceErr);
+          toast.error(evidenceErr);
           return;
         }
+
+        setEvidenceError(null);
+        formData.delete("evidence");
+        evidenceFiles.forEach((file) => formData.append("evidence", file));
 
         const isValid = await trigger();
 
@@ -327,21 +443,70 @@ export function NewEntryForm({
 
           <div className="space-y-2">
             <Label htmlFor="evidence">凭证</Label>
-            <Input
-              id="evidence"
-              type="file"
-              accept="image/*"
-              disabled={pending}
-              aria-invalid={Boolean(errors.evidence)}
-              {...register("evidence")}
-            />
-            <p className="text-xs text-muted-foreground">
-              必须上传一张图片，最大 5MB。
-            </p>
-            {errors.evidence?.message ? (
-              <p className="text-sm text-destructive">
-                {errors.evidence.message}
+            <div
+              className={cn(
+                "rounded-lg border border-dashed p-3 transition-colors",
+                isDraggingEvidence
+                  ? "border-primary bg-primary/5"
+                  : "border-input bg-transparent",
+                pending ? "pointer-events-none opacity-50" : null,
+                evidenceError ? "border-destructive" : null
+              )}
+              onDragOver={handleEvidenceDragOver}
+              onDragEnter={handleEvidenceDragOver}
+              onDragLeave={handleEvidenceDragLeave}
+              onDrop={handleEvidenceDrop}
+            >
+              <Input
+                id="evidence"
+                type="file"
+                accept="image/*"
+                multiple
+                disabled={pending}
+                aria-invalid={Boolean(evidenceError)}
+                onChange={handleEvidenceChange}
+                ref={evidenceInputRef}
+              />
+              <p className="mt-2 text-xs text-muted-foreground">
+                点击选择或拖拽上传，需 1~9 张图片，每张最大 5MB。
               </p>
+              {evidencePreviews.length > 0 ? (
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {evidencePreviews.map((preview, index) => (
+                    <div
+                      key={preview.id}
+                      className="overflow-hidden rounded-lg border bg-muted/20"
+                    >
+                      <img
+                        src={preview.url}
+                        alt={`凭证预览 ${index + 1}`}
+                        className="aspect-square w-full object-cover"
+                      />
+                      <div className="space-y-1 p-2">
+                        <p className="truncate text-xs text-foreground">
+                          {preview.file.name}
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 w-full"
+                          onClick={() => removeEvidencePreview(preview.id)}
+                          disabled={pending}
+                        >
+                          删除
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              支持 jpeg、png、webp、heic。
+            </p>
+            {evidenceError ? (
+              <p className="text-sm text-destructive">{evidenceError}</p>
             ) : null}
           </div>
 
