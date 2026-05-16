@@ -300,6 +300,36 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
 
 ---
 
+## 老板需求单 (2026-05-16 第二批) — 凭证上传体验 + e2e 测试库清理
+
+> 来源: 老板 2026-05-16 第二批需求单。合伙人反馈传凭证图片麻烦(直接关系 ASSISTANT.md "合伙人 30 秒录一笔"体验红线)。
+> 顺序: T-304 → T-305 → T-306。T-306 依赖 T-305(同一上传组件)。
+
+- [ ] **T-304 e2e 测试库每次跑前自动重置干净** [P2·技术债]
+  **背景**: `pnpm db:seed` 是 upsert-only, 不清运行期数据; e2e 各 spec 跑时会建流水/冲销条, 这些永不清, 反复跑 dev.db 越积越脏。T-303 验收时 archive-delete spec 就因此一度误判(别的 spec 留下的冲销条污染 image2 合计)。
+  **怎么改**: 让 `pnpm e2e` 每次从干净库开始, 不靠手动。建议二选一或都做: (1) 给 playwright 加 globalSetup, 跑套件前自动重建+seed 测试库; (2) seed.ts 改成先按外键依赖顺序清空再插入(幂等且干净)。具体机制 codex 按 playwright/prisma 文档定, 目标=「`pnpm e2e` 任何时候跑都从 pristine 状态开始」。
+  **约束**: 不碰 prisma schema / 不装新依赖 / 不 push。测试库=本地 dev.db, 生产库不受影响。
+  **验收**: 连跑两遍 `pnpm exec playwright test` 都 20/20 全绿(第二遍不受第一遍污染); `npx tsc --noEmit` 绿。
+
+- [ ] **T-305 凭证支持一次传多张图片** [P1·老板需求单·体验红线]
+  **背景**: 合伙人反馈一条流水只能传一张凭证太少。Evidence 表本就是 Entry 一对多(schema 已支持多张), 显示侧(审核弹窗 approval-dialog:236、流水行 entry-row:308)也已 `.map()` 渲染数组——只差放开录入这一端。
+  **改哪**: `src/app/(app)/entries/new/new-entry-form.tsx` + `src/server/entries.ts` createEntryAction
+  **怎么改**:
+  1. 录入表单凭证 `<input type="file">` 加 `multiple`; 选完显示已选图片缩略图/文件名列表, 可单张移除; 提示文案改「可上传 1~9 张图片, 每张最大 5MB」。
+  2. entryFormSchema 的 evidence 校验从「必须 1 张」改「1~9 张」: 至少 1 张(守住"强制证据"红线), 上限 9 张; 每张仍限 jpeg/png/webp/heic 且 ≤5MB。
+  3. `createEntryAction`: `formData.get("evidence")` 改 `formData.getAll("evidence")`, 循环 `saveUploadedFile` 存每张, 为每张建一条 Evidence 行; 服务端同样校验张数 1~9、单张类型/大小; 任一张失败给中文错误并整笔回滚。
+  **约束**: 不碰 prisma schema(Evidence 一对多已就绪) / 不装新依赖 / 不 push。显示侧已支持多张, 不用改 approval-dialog / entry-row / 流水详情页。
+  **验收**: 录入页能选多张、能预览能删单张; 提交后流水详情和审核弹窗能看到全部凭证图; 只传 1 张仍正常; 0 张被拦; e2e 补一条多图录入用例; 全套 e2e 全绿; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
+
+- [ ] **T-306 凭证支持拖拽上传(桌面端)** [P1·老板需求单·体验红线·依赖 T-305]
+  **背景**: 合伙人反馈桌面端只能"浏览文件夹"选图很麻烦, 想直接把图片拖进表单。(手机端点一下选相册/相机已够用, 本工单针对桌面。)
+  **改哪**: `src/app/(app)/entries/new/new-entry-form.tsx` 的凭证上传区
+  **怎么改**: 把凭证区域做成一个拖拽放置区(dashed border 的 dropzone): 支持把一张或多张图片拖进去→加入已选列表; 拖拽悬停时有视觉反馈; 同时保留原「点击浏览选择」入口(两种方式都能用)。拖入文件走和 T-305 同一套校验(1~9 张、类型、大小)。纯前端, 不碰 server。
+  **约束**: 不碰 prisma schema / 不碰 server 逻辑 / 不装新依赖(用原生 HTML5 drag & drop API) / 不 push。依赖 T-305 先完成(同一上传组件)。
+  **验收**: 桌面浏览器把图片拖进凭证区能成功加入并预览; 点击浏览仍可用; 拖非图片文件被拒并提示; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
+
+---
+
 ## Codex 工作约束 (必读 - v2.1)
 
 - **每次循环开始**: `git pull origin main` 拿最新 TODO.md (dengche 已 push)
