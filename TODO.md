@@ -288,7 +288,8 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
   **约束**: 不碰 prisma schema / 不碰 server 逻辑(那是 T-301) / 不装新依赖 / 不 push。
   **验收**: OWNER 在流水详情看到删除按钮、合伙人看不到; 走完删除流程流水消失并跳回项目页; 不填原因不能提交; dev 模式控制台该页 0 报错; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
 
-- [!] **T-303 e2e — 项目归档 + 流水删除** [P1·老板需求单·依赖 T-300~302]
+- [?] **T-303 e2e — 项目归档 + 流水删除** [P1·老板需求单·依赖 T-300~302]
+  **阻塞**: 新 spec 已添加并可被 Playwright 发现；`npx tsc --noEmit` 与 `pnpm exec next build --webpack` 通过。但当前 macOS 沙箱无法启动 Chromium (`bootstrap_check_in ... Permission denied` / Crashpad `Operation not permitted`)，且 PORT=3002 已被本仓库 Next dev 进程 PID 73058 占用，当前进程无权限 kill (`operation not permitted`)。因此新 spec/全套 e2e 暂无法实际跑绿，未标 `[x]`。
   **背景**: 两个新功能要 e2e 覆盖, 沿用 `e2e/` 现有 spec 模式。
   **怎么改**: 新建 spec 覆盖: (1) OWNER 归档项目后该项目从列表/录入下拉消失、能恢复; (2) OWNER 删除一条流水后项目盈亏合计相应变化、`ENTRY_DELETED` 在 DB 有记录; (3) PARTNER 账号看不到归档按钮和删除按钮。dev server 用 PORT=3002。
   **约束**: 不碰 prisma schema / 不装新依赖 / 不 push。
