@@ -238,6 +238,12 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
   **背景**: 老板实测审核弹窗"通过/驳回"按钮还是点不到。根因: `src/components/ui/dialog.tsx` 的 DialogContent（Base UI Popup）无 max-height/overflow，长内容弹窗撑破视口、底部按钮溢出屏幕。T-200 只在 approval-dialog 业务层打补丁（max-h+overflow+sticky）没真正生效——补丁打错层。
   **怎么改**: 改地基组件 DialogContent——默认 max-h（90dvh）+ 内容区可滚动 + 操作区固定底部可见。影响所有 dialog，需全套 e2e 覆盖。
   **验收**: `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿; e2e 加 `toBeInViewport()` 断言审核通过按钮真实可见; 全套 e2e 全绿。
+  > 后续: T-217 的 translate 居中在真实浏览器仍失效, dengche 亲自改用 Base UI Dialog.Viewport flex 居中根治 (commit f8cfe81, 生产实测居中)。
+
+- [ ] **T-218 加编辑项目功能（改项目名 + 描述）** [P1·老板实测]
+  **背景**: 老板实测——项目建好后名字/描述改不了。代码只有 createProject，无 updateProject、无编辑入口/页。
+  **怎么改**: server/projects.ts 加 updateProjectAction(OWNER only); 加 projects/[id]/edit 页(参考 admin/users/[id]/edit 模式); 项目详情页加 OWNER-only 编辑入口; 字段=项目名+描述; 成功写 PROJECT_UPDATED LedgerEvent。
+  **验收**: `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿; OWNER 能改项目名保存, PARTNER 访问 edit 被拒。
 
 ---
 
