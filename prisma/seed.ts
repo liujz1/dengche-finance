@@ -55,6 +55,28 @@ const entrySeeds = [
   },
 ] as const;
 
+// 两条待审流水——审核相关 e2e（approval / approval-viewport）需要待审数据。
+// 不混进 entrySeeds（那批全是已审核）：PENDING 不计入盈亏，
+// 不影响首页/趋势图/archive-delete 的合计断言。
+const pendingEntrySeeds = [
+  {
+    id: "seed_entry_image2_pending_review",
+    projectId: SEED.image2ProjectId,
+    type: EntryType.INCOME,
+    amountCents: 20000,
+    description: "微信收款 ¥200 待审",
+    daysAgo: 2,
+  },
+  {
+    id: "seed_entry_windsurf_pending_review",
+    projectId: SEED.windsurfProjectId,
+    type: EntryType.EXPENSE,
+    amountCents: 8800,
+    description: "服务器续费 ¥88 待审",
+    daysAgo: 1,
+  },
+] as const;
+
 function createPrismaClient(): PrismaClient {
   const databaseUrl = process.env.DATABASE_URL ?? "file:./dev.db";
   const url = databaseUrl.startsWith("file:")
@@ -93,9 +115,21 @@ function eventPayload(input: {
 
 const prisma = createPrismaClient();
 
-async function main() {
+async function resetDatabase() {
+  await prisma.ledgerEvent.deleteMany();
+  await prisma.evidence.deleteMany();
+  await prisma.entry.deleteMany();
+  await prisma.partnerShare.deleteMany();
+  await prisma.allocationPlan.deleteMany();
+  await prisma.project.deleteMany();
+  await prisma.user.deleteMany();
+}
+
+export async function seedDatabase() {
   const now = new Date();
   const effectiveFrom = daysAgo(30);
+
+  await resetDatabase();
 
   // 👤 固定三位内部账号；email upsert，重复跑不会创建重复用户。
   const [owner, partnerA, partnerB] = await Promise.all([
@@ -334,6 +368,67 @@ async function main() {
     });
   }
 
+  // 🧾 待审流水——只建 ENTRY_CREATED 事件，状态停在 PENDING，给审核 e2e 用。
+  for (const pending of pendingEntrySeeds) {
+    const occurredAt = daysAgo(pending.daysAgo);
+
+    await prisma.entry.upsert({
+      where: { id: pending.id },
+      update: {
+        projectId: pending.projectId,
+        type: pending.type,
+        amountCents: pending.amountCents,
+        description: pending.description,
+        occurredAt,
+        status: EntryStatus.PENDING,
+        createdById: partnerA.id,
+        approvedById: null,
+        approvedAt: null,
+      },
+      create: {
+        id: pending.id,
+        projectId: pending.projectId,
+        type: pending.type,
+        amountCents: pending.amountCents,
+        description: pending.description,
+        occurredAt,
+        status: EntryStatus.PENDING,
+        createdById: partnerA.id,
+      },
+    });
+
+    await prisma.ledgerEvent.upsert({
+      where: { id: `${pending.id}_created` },
+      update: {
+        entryId: pending.id,
+        eventType: "ENTRY_CREATED",
+        payloadJson: eventPayload({
+          entryId: pending.id,
+          eventType: "ENTRY_CREATED",
+          status: EntryStatus.PENDING,
+          description: pending.description,
+          amountCents: pending.amountCents,
+        }),
+        actorId: partnerA.id,
+        occurredAt,
+      },
+      create: {
+        id: `${pending.id}_created`,
+        entryId: pending.id,
+        eventType: "ENTRY_CREATED",
+        payloadJson: eventPayload({
+          entryId: pending.id,
+          eventType: "ENTRY_CREATED",
+          status: EntryStatus.PENDING,
+          description: pending.description,
+          amountCents: pending.amountCents,
+        }),
+        actorId: partnerA.id,
+        occurredAt,
+      },
+    });
+  }
+
   const [userCount, projectCount, entryCount, planCount] = await Promise.all([
     prisma.user.count(),
     prisma.project.count(),
@@ -348,11 +443,13 @@ async function main() {
   console.log("🔑 boss@dengche.local / boss123456");
 }
 
-main()
-  .catch((error) => {
-    console.error("❌ Seed 失败", error);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (import.meta.url === `file://${process.argv[1]}`) {
+  seedDatabase()
+    .catch((error) => {
+      console.error("❌ Seed 失败", error);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

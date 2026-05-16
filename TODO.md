@@ -305,7 +305,8 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
 > 来源: 老板 2026-05-16 第二批需求单。合伙人反馈传凭证图片麻烦(直接关系 ASSISTANT.md "合伙人 30 秒录一笔"体验红线)。
 > 顺序: T-304 → T-305 → T-306。T-306 依赖 T-305(同一上传组件)。
 
-- [!] **T-304 e2e 测试库每次跑前自动重置干净** [P2·技术债]
+- [x] **T-304 e2e 测试库每次跑前自动重置干净** [P2·技术债] — 2026-05-16 完成
+  **完成**: seed.ts 加 resetDatabase() 先按外键序清空再灌; playwright globalSetup 每次跑前自动 reseed; 另发现并修复——种子数据原本 4 条流水全是已审核、0 条待审, 审核类 e2e(approval/approval-viewport)在干净库上因无待审流水而跳过(此前靠脏数据假绿)。dengche 补 2 条 PENDING 种子流水。连跑两遍 `pnpm exec playwright test` 均 20/20 全绿、0 跳过。
   **背景**: `pnpm db:seed` 是 upsert-only, 不清运行期数据; e2e 各 spec 跑时会建流水/冲销条, 这些永不清, 反复跑 dev.db 越积越脏。T-303 验收时 archive-delete spec 就因此一度误判(别的 spec 留下的冲销条污染 image2 合计)。
   **怎么改**: 让 `pnpm e2e` 每次从干净库开始, 不靠手动。建议二选一或都做: (1) 给 playwright 加 globalSetup, 跑套件前自动重建+seed 测试库; (2) seed.ts 改成先按外键依赖顺序清空再插入(幂等且干净)。具体机制 codex 按 playwright/prisma 文档定, 目标=「`pnpm e2e` 任何时候跑都从 pristine 状态开始」。
   **约束**: 不碰 prisma schema / 不装新依赖 / 不 push。测试库=本地 dev.db, 生产库不受影响。
