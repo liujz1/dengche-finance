@@ -264,7 +264,7 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
   **约束**: 不碰 prisma schema(`active` 字段已存在) / 不改 `getMyProjects`(已过滤 active:true, 归档项目自动从录入下拉消失) / 不装新依赖 / 不 push。
   **验收**: OWNER 归档后项目从 /projects 列表和录入页项目下拉消失; OWNER 能在已归档视图看到并恢复; 合伙人看不到归档按钮和已归档项目; 归档/恢复在项目时间线留 LedgerEvent; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
 
-- [!] **T-301 流水删除 — server action (含 immutable log 留痕)** [P1·老板需求单]
+- [x] **T-301 流水删除 — server action (含 immutable log 留痕)** [P1·老板需求单] (`7f03eaa`)
   **背景**: 中转代理项目里有测试流水要清掉, 现流水只能"反向冲销"不能删。老板拍板: OWNER 可硬删任意状态流水(含已审核通过), 删除动作必须在 immutable log 留痕。这是对信任三锚第 3 条的老板授权例外。
   **改哪**: `src/server/entries.ts` — 新增 `deleteEntryAction`
   **怎么改**:
