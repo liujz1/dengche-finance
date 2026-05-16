@@ -31,6 +31,7 @@ import {
 import { prisma } from "@/lib/db";
 import { formatYuan } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { ProjectArchiveDialog } from "./project-archive-dialog";
 
 type ProjectDetailPageProps = {
   params: Promise<{
@@ -68,6 +69,7 @@ export default async function ProjectDetailPage({
       ...(isOwner
         ? {}
         : {
+            active: true,
             allocations: {
               some: {
                 shares: {
@@ -83,6 +85,7 @@ export default async function ProjectDetailPage({
       id: true,
       name: true,
       description: true,
+      active: true,
     },
   });
 
@@ -165,7 +168,9 @@ export default async function ProjectDetailPage({
             <h1 className="text-2xl font-semibold tracking-normal">
               {project.name}
             </h1>
-            <Badge variant="secondary">项目详情</Badge>
+            <Badge variant="secondary">
+              {project.active ? "项目详情" : "已归档"}
+            </Badge>
           </div>
           <p className="max-w-3xl text-sm text-muted-foreground">
             {project.description || "暂无描述"}
@@ -187,14 +192,20 @@ export default async function ProjectDetailPage({
               >
                 管理分配方案
               </Link>
+              <ProjectArchiveDialog
+                projectId={project.id}
+                archived={project.active}
+              />
             </>
           ) : null}
-          <Link
-            href={`/entries/new?projectId=${project.id}`}
-            className={cn(buttonVariants({ size: "lg" }))}
-          >
-            + 录入新流水
-          </Link>
+          {project.active ? (
+            <Link
+              href={`/entries/new?projectId=${project.id}`}
+              className={cn(buttonVariants({ size: "lg" }))}
+            >
+              + 录入新流水
+            </Link>
+          ) : null}
         </div>
       </div>
 

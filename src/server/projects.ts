@@ -34,6 +34,16 @@ export type UpdateProjectState = CreateProjectState & {
   projectId?: string;
 };
 
+export type ProjectArchiveState = {
+  success?: boolean;
+  error?: string;
+};
+
+const archiveProjectSchema = z.object({
+  id: z.string().min(1, "项目不存在"),
+  archived: z.enum(["true", "false"]).transform((value) => value === "true"),
+});
+
 export async function createProject(
   _prevState: CreateProjectState,
   formData: FormData
@@ -168,6 +178,93 @@ export async function updateProjectAction(
     console.error("update project failed", error);
     return { error: "保存失败" };
   }
+}
+
+export async function setProjectArchivedAction(
+  _prevState: ProjectArchiveState,
+  formData: FormData
+): Promise<ProjectArchiveState> {
+  const session = await auth();
+
+  if (!session?.user?.id || session.user.role !== "OWNER") {
+    return { error: "只有老板可以归档项目" };
+  }
+
+  const parsed = archiveProjectSchema.safeParse({
+    id: formData.get("id"),
+    archived: formData.get("archived"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "项目不存在" };
+  }
+
+  const current = await prisma.project.findUnique({
+    where: {
+      id: parsed.data.id,
+    },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      active: true,
+      createdAt: true,
+    },
+  });
+
+  if (!current) {
+    return { error: "项目不存在" };
+  }
+
+  const nextActive = !parsed.data.archived;
+
+  if (current.active === nextActive) {
+    return { success: true };
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.project.update({
+        where: {
+          id: current.id,
+        },
+        data: {
+          active: nextActive,
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          active: true,
+          createdAt: true,
+        },
+      });
+
+      await tx.ledgerEvent.create({
+        data: {
+          projectId: updated.id,
+          eventType: parsed.data.archived
+            ? "PROJECT_ARCHIVED"
+            : "PROJECT_RESTORED",
+          payloadJson: JSON.stringify({
+            before: current,
+            after: updated,
+            actorId: session.user.id,
+            projectId: updated.id,
+          }),
+          actorId: session.user.id,
+        },
+      });
+    });
+  } catch (error) {
+    console.error("set project archived failed", error);
+    return { error: parsed.data.archived ? "归档失败" : "恢复失败" };
+  }
+
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${current.id}`);
+
+  return { success: true };
 }
 
 export async function getMyProjects() {

@@ -17,6 +17,7 @@ import { EntryStatus, EntryType } from "@/generated/prisma/enums";
 import { signedProfitAmountCents } from "@/lib/amount";
 import { prisma } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { ProjectArchiveDialog } from "./[id]/project-archive-dialog";
 
 const moneyFormatter = new Intl.NumberFormat("zh-CN", {
   style: "currency",
@@ -29,7 +30,11 @@ function formatCents(cents: number) {
   return moneyFormatter.format(cents / 100);
 }
 
-export default async function ProjectsPage() {
+export default async function ProjectsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ archived?: string }>;
+}) {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -37,9 +42,11 @@ export default async function ProjectsPage() {
   }
 
   const isOwner = session.user.role === "OWNER";
+  const { archived } = await searchParams;
+  const showArchived = isOwner && archived === "1";
   const projects = await prisma.project.findMany({
     where: {
-      active: true,
+      active: showArchived ? false : true,
       ...(isOwner
         ? {}
         : {
@@ -58,6 +65,7 @@ export default async function ProjectsPage() {
       id: true,
       name: true,
       description: true,
+      active: true,
       entries: {
         where: {
           status: {
@@ -103,12 +111,20 @@ export default async function ProjectsPage() {
           </p>
         </div>
         {isOwner ? (
-          <Link
-            href="/projects/new"
-            className={cn(buttonVariants({ size: "lg" }), "self-start")}
-          >
-            + 新建项目
-          </Link>
+          <div className="flex flex-wrap gap-2 self-start">
+            <Link
+              href={showArchived ? "/projects" : "/projects?archived=1"}
+              className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+            >
+              {showArchived ? "查看活跃项目" : "查看已归档"}
+            </Link>
+            <Link
+              href="/projects/new"
+              className={cn(buttonVariants({ size: "lg" }))}
+            >
+              + 新建项目
+            </Link>
+          </div>
         ) : null}
       </div>
 
@@ -122,13 +138,17 @@ export default async function ProjectsPage() {
                   {project.description || "暂无描述"}
                 </CardDescription>
                 <CardAction>
-                  <Badge
-                    variant={
-                      project.approvedProfitCents >= 0 ? "secondary" : "destructive"
-                    }
-                  >
-                    {project.approvedProfitCents >= 0 ? "盈利" : "亏损"}
-                  </Badge>
+                  {showArchived ? (
+                    <Badge variant="outline">已归档</Badge>
+                  ) : (
+                    <Badge
+                      variant={
+                        project.approvedProfitCents >= 0 ? "secondary" : "destructive"
+                      }
+                    >
+                      {project.approvedProfitCents >= 0 ? "盈利" : "亏损"}
+                    </Badge>
+                  )}
                 </CardAction>
               </CardHeader>
               <CardContent>
@@ -148,15 +168,23 @@ export default async function ProjectsPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Link
-                  href={`/projects/${project.id}`}
-                  className={cn(
-                    buttonVariants({ variant: "outline" }),
-                    "w-full"
-                  )}
-                >
-                  查看项目
-                </Link>
+                <div className="flex w-full flex-col gap-2 sm:flex-row">
+                  <Link
+                    href={`/projects/${project.id}`}
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      "flex-1"
+                    )}
+                  >
+                    查看项目
+                  </Link>
+                  {showArchived ? (
+                    <ProjectArchiveDialog
+                      projectId={project.id}
+                      archived={false}
+                    />
+                  ) : null}
+                </div>
               </CardFooter>
             </Card>
           ))}
@@ -164,7 +192,9 @@ export default async function ProjectsPage() {
       ) : (
         <Card>
           <CardContent className="text-sm text-muted-foreground">
-            还没有项目, 老板可以新建一个
+            {showArchived
+              ? "还没有已归档项目"
+              : "还没有项目, 老板可以新建一个"}
           </CardContent>
         </Card>
       )}
