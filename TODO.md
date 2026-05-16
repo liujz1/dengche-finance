@@ -277,7 +277,7 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
   **约束**: 不碰 prisma schema / 不装新依赖 / 不 push。
   **验收**: OWNER 调用后该流水从项目流水列表、盈亏合计、趋势曲线消失(合计自动重算); 项目时间线留 `ENTRY_DELETED` 事件含完整快照+原因; 冲销配对流水尝试删除被拒; 非 OWNER 调用被拒; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
 
-- [ ] **T-302 流水删除 — UI (详情页删除按钮 + 确认 + 原因)** [P1·老板需求单·依赖 T-301]
+- [!] **T-302 流水删除 — UI (详情页删除按钮 + 确认 + 原因)** [P1·老板需求单·依赖 T-301]
   **背景**: 配合 T-301, 给 OWNER 在流水详情页删除入口。
   **改哪**: `src/app/(app)/projects/[id]/[entryId]/page.tsx` + 可新建 client 组件 `delete-entry-dialog.tsx`
   **怎么改**:
