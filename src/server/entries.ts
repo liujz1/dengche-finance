@@ -3,6 +3,7 @@
 import { randomBytes } from "node:crypto";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { auth } from "@/auth";
@@ -716,5 +717,8 @@ export async function deleteEntryAction(
   revalidatePath("/approvals");
   revalidatePath("/me");
 
-  return { success: true, projectId: entry.projectId };
+  // 服务端跳转回项目页。不能 return success 让前端 router.push——
+  // 流水被删后当前流水详情路由会刷新成 404 并卸载弹窗组件，
+  // 前端跳转来不及执行。redirect() 在那之前短路（createProject 同款写法）。
+  redirect(`/projects/${entry.projectId}`);
 }

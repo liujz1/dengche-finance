@@ -119,11 +119,33 @@ test.describe.serial("T-303 项目归档 + 流水删除", () => {
     await expect(page.getByText("windsurf (Pro 号家人自用 + 服务器化)")).toBeVisible();
     await page.getByRole("button", { name: "恢复项目" }).click();
     await page.getByRole("button", { name: "确认恢复" }).click();
-    await expect(page.getByText("已归档")).toHaveCount(0, { timeout: 10_000 });
+    // 恢复后该项目应离开归档列表。不能用 getByText("已归档")——空状态文案
+    // "还没有已归档项目" 含该子串会被模糊匹配命中，改用项目描述精确判断。
+    await expect(
+      page.getByText("windsurf (Pro 号家人自用 + 服务器化)")
+    ).toHaveCount(0, { timeout: 10_000 });
 
     await page.goto("/projects");
     await expect(page.getByText("windsurf (Pro 号家人自用 + 服务器化)")).toBeVisible();
   });
+
+  // image2 已审核流水的合计盈亏（INCOME 计正、EXPENSE/PROXY_PAY 计负，
+  // 与 src/lib/amount.ts signedProfitAmountCents 一致）。用相对断言，
+  // 不硬编码绝对值——全套 e2e 里 image2 会被别的 spec 塞流水。
+  function image2ApprovedProfitCents() {
+    const db = new Database(databasePath());
+    const row = db
+      .prepare(
+        `SELECT COALESCE(SUM(CASE
+            WHEN type = 'INCOME' THEN amountCents
+            WHEN type IN ('EXPENSE', 'PROXY_PAY') THEN -amountCents
+            ELSE 0 END), 0) AS profit
+          FROM Entry WHERE projectId = ? AND status = 'APPROVED'`
+      )
+      .get(IMAGE2_ID) as { profit: number };
+    db.close();
+    return row.profit;
+  }
 
   test("OWNER 删除流水后合计变化且 DB 留 ENTRY_DELETED", async ({ page }) => {
     const db = new Database(databasePath());
@@ -132,18 +154,20 @@ test.describe.serial("T-303 项目归档 + 流水删除", () => {
       .get(DELETE_ENTRY_ID) as { amountCents: number };
     db.close();
 
-    await login(page, BOSS.email, BOSS.password);
-    await page.goto(`/projects/${IMAGE2_ID}`);
-    await expect(page.getByText("¥768.00")).toBeVisible();
+    const profitBefore = image2ApprovedProfitCents();
 
+    await login(page, BOSS.email, BOSS.password);
     await page.goto(`/projects/${IMAGE2_ID}/${DELETE_ENTRY_ID}`);
     await page.getByRole("button", { name: /删除流水/ }).click();
     await page.locator('textarea[name="reason"]').fill("T-303 e2e 删除测试");
     await page.getByRole("button", { name: "确认删除" }).click();
     await page.waitForURL(`/projects/${IMAGE2_ID}`, { timeout: 10_000 });
 
-    await expect(page.getByText("¥888.00").first()).toBeVisible();
-    await expect(page.getByText("Adobe 账号采购 ¥120")).toHaveCount(0);
+    // 精确匹配——别的 spec 留下的反向冲销流水描述含 "Adobe 账号采购 ¥120"
+    // 这段子串，模糊匹配会误命中。被删流水的描述恰好就是这一整串。
+    await expect(
+      page.getByText("Adobe 账号采购 ¥120", { exact: true })
+    ).toHaveCount(0);
 
     const verifyDb = new Database(databasePath());
     const deletedEntry = verifyDb
@@ -158,9 +182,14 @@ test.describe.serial("T-303 项目归档 + 流水删除", () => {
       | undefined;
     verifyDb.close();
 
+    const profitAfter = image2ApprovedProfitCents();
+
     expect(before.amountCents).toBe(12_000);
-    expect(deletedEntry).toBeNull();
-    expect(deletedEvent).not.toBeNull();
+    // 删掉一条已审核的 EXPENSE，合计盈亏应上升被删金额
+    expect(profitAfter - profitBefore).toBe(12_000);
+    // better-sqlite3 .get() 查不到行返回 undefined（不是 null）
+    expect(deletedEntry).toBeUndefined();
+    expect(deletedEvent).toBeDefined();
     expect(deletedEvent?.entryId).toBeNull();
   });
 

@@ -288,8 +288,11 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
   **约束**: 不碰 prisma schema / 不碰 server 逻辑(那是 T-301) / 不装新依赖 / 不 push。
   **验收**: OWNER 在流水详情看到删除按钮、合伙人看不到; 走完删除流程流水消失并跳回项目页; 不填原因不能提交; dev 模式控制台该页 0 报错; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
 
-- [?] **T-303 e2e — 项目归档 + 流水删除** [P1·老板需求单·依赖 T-300~302]
-  **阻塞**: 新 spec 已添加并可被 Playwright 发现；`npx tsc --noEmit` 与 `pnpm exec next build --webpack` 通过。但当前 macOS 沙箱无法启动 Chromium (`bootstrap_check_in ... Permission denied` / Crashpad `Operation not permitted`)，且 PORT=3002 已被本仓库 Next dev 进程 PID 73058 占用，当前进程无权限 kill (`operation not permitted`)。因此新 spec/全套 e2e 暂无法实际跑绿，未标 `[x]`。
+- [x] **T-303 e2e — 项目归档 + 流水删除** [P1·老板需求单·依赖 T-300~302] — 2026-05-16 dengche 验收完成
+  **验收结果**: 全套 20 个 e2e 全绿(`pnpm exec playwright test`)，`npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
+  **验收中发现并修复**:
+  - 真 bug(T-302)：删除流水后跳到 404。根因——流水被删后当前流水详情路由刷新成 404、卸载弹窗组件，前端 router.push 来不及执行。修法：`deleteEntryAction` 末尾改服务端 `redirect()`(createProject 同款写法)。
+  - codex 写的 spec 三处不抗污染/写法错：getByText 模糊匹配命中空状态文案"还没有已归档项目"→改精确判断；`toBeNull()` 误用(better-sqlite3 查不到返回 undefined)→`toBeUndefined()`；硬编码 image2 合计 ¥768/¥888(全套里被别 spec 塞流水)→改相对断言(删除前后合计差=被删金额) + 精确匹配描述。
   **背景**: 两个新功能要 e2e 覆盖, 沿用 `e2e/` 现有 spec 模式。
   **怎么改**: 新建 spec 覆盖: (1) OWNER 归档项目后该项目从列表/录入下拉消失、能恢复; (2) OWNER 删除一条流水后项目盈亏合计相应变化、`ENTRY_DELETED` 在 DB 有记录; (3) PARTNER 账号看不到归档按钮和删除按钮。dev server 用 PORT=3002。
   **约束**: 不碰 prisma schema / 不装新依赖 / 不 push。
