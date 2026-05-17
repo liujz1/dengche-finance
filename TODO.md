@@ -347,6 +347,17 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
   **约束**: 不碰 prisma schema / 不碰 server / 不装新依赖 / 不 push。
   **验收**: 选中项目后 trigger 显示项目名(如"中转代理")不是 ID; 类型下拉显示"支出/收入/转账/代收/代付"不是 `EXPENSE` 等; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿; e2e 全绿。
 
+- [ ] **T-310 合伙人看不到流水被驳回的原因** [P1·老板实测·体验红线]
+  **背景**: 老板实测——老板驳回合伙人提交的流水后, 合伙人只能在 /me「历史流水」看到一个"已驳回"状态徽章, **看不到驳回原因**; 且 /me 流水行不可点击, 无法进入流水看更多。驳回原因(`rejectedReason`)目前只出现在: (a) 审核弹窗(老板视角); (b) 流水审计页 ENTRY_REJECTED 事件的原始 JSON dump 里——合伙人没有顺畅路径看到。合伙人不知道为啥被驳回=没法改正重交, 直接违反 ASSISTANT.md "合伙人不糊涂账"第一性原则。
+  **改哪**: `src/app/(app)/me/page.tsx`(历史流水表) + `src/app/(app)/projects/[id]/[entryId]/page.tsx`(流水审计/详情页)
+  **怎么改**:
+  1. /me「历史流水」myEntries 查询补 `rejectedReason` 字段; 对 REJECTED 行明确显示「驳回原因：xxx」(状态列下方或展开行, 择清晰的)。
+  2. /me「历史流水」每行可点击 → 链接到流水详情页 `/projects/[projectId]/[entryId]`(myEntries 查询补 projectId)。
+  3. 流水审计页: 若 `entry.status === REJECTED`, 页头加一个明显的「已驳回 · 原因：xxx」提示卡(entry select 补 `rejectedReason`), 不要让原因只埋在事件 JSON 里。
+  **不做**: 通知推送(部门边界明确不做)——只做"合伙人主动看时能清楚看到"。
+  **约束**: 不碰 prisma schema(`rejectedReason` 字段已存在) / 不碰 server 写逻辑 / 不装新依赖 / 不 push。
+  **验收**: 合伙人 /me 能看到被驳回流水的原因; 能从 /me 点进流水详情; 详情页 REJECTED 流水有明显驳回原因提示; e2e 补一条「合伙人看到驳回原因」用例; 全套 e2e 全绿; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
+
 ---
 
 ## Codex 工作约束 (必读 - v2.1)
