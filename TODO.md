@@ -339,6 +339,13 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
   **背景**: 老板实测点删除冲销过的流水, 报"已冲销的流水请先处理冲销配对, 不能单独删除"——这是 T-301 故意留的口子(第一版没做冲销配对删除)。老板拍板补上。
   **改**: `deleteEntryAction` 删一条属于冲销配对的流水时, 把整对(原始条 VOIDED + 冲销条)一起删——按外键序断开自引用、各写一条 ENTRY_DELETED 留痕。补配对删除 e2e(轮询 DB 验证)。全套 23 e2e 全绿。
 
+- [ ] **T-309 录入页项目/类型下拉显示内部 ID 而非名字** [P0·老板实测·线上 bug]
+  **背景**: 老板生产实测——录入流水页"项目"下拉框收起时显示项目内部 ID(如 `seed_project_windsurf`)而不是项目名("中转代理")。已查生产库确认: 项目 name 字段存的就是中文名"中转代理", 数据没问题, 纯显示层 bug。根因: Base UI Select 的 `Select.Value`(SelectValue)默认渲染选中项原始 value(=project.id), 没有 value→label 映射。同一表单的"类型"下拉同样问题(收起会显示 `EXPENSE` 而非"支出")。
+  **改哪**: `src/app/(app)/entries/new/new-entry-form.tsx`(项目 + 类型两个 `<Select>`); 必要时 `src/components/ui/select.tsx`。
+  **怎么改**: 按 Base UI Select 文档让收起态 trigger 显示选中项中文 label 而不是 value: 给 `Select`(Root) 传 `items`(value→label 映射), 或给 `<SelectValue>` 传 children 渲染函数解析 label。两个下拉都修。展开后的选项列表本就显示名字, 不用动。
+  **约束**: 不碰 prisma schema / 不碰 server / 不装新依赖 / 不 push。
+  **验收**: 选中项目后 trigger 显示项目名(如"中转代理")不是 ID; 类型下拉显示"支出/收入/转账/代收/代付"不是 `EXPENSE` 等; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿; e2e 全绿。
+
 ---
 
 ## Codex 工作约束 (必读 - v2.1)
