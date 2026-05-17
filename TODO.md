@@ -347,7 +347,7 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
   **约束**: 不碰 prisma schema / 不碰 server / 不装新依赖 / 不 push。
   **验收**: 选中项目后 trigger 显示项目名(如"中转代理")不是 ID; 类型下拉显示"支出/收入/转账/代收/代付"不是 `EXPENSE` 等; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿; e2e 全绿。
 
-- [ ] **T-310 合伙人看不到流水被驳回的原因** [P1·老板实测·体验红线]
+- [!] **T-310 合伙人看不到流水被驳回的原因** [P1·老板实测·体验红线]
   **背景**: 老板实测——老板驳回合伙人提交的流水后, 合伙人只能在 /me「历史流水」看到一个"已驳回"状态徽章, **看不到驳回原因**; 且 /me 流水行不可点击, 无法进入流水看更多。驳回原因(`rejectedReason`)目前只出现在: (a) 审核弹窗(老板视角); (b) 流水审计页 ENTRY_REJECTED 事件的原始 JSON dump 里——合伙人没有顺畅路径看到。合伙人不知道为啥被驳回=没法改正重交, 直接违反 ASSISTANT.md "合伙人不糊涂账"第一性原则。
   **改哪**: `src/app/(app)/me/page.tsx`(历史流水表) + `src/app/(app)/projects/[id]/[entryId]/page.tsx`(流水审计/详情页)
   **怎么改**:
