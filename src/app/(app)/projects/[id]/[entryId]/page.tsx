@@ -15,6 +15,7 @@ import { prisma } from "@/lib/db";
 import { formatDate, formatYuan } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { DeleteEntryDialog } from "@/components/delete-entry-dialog";
+import { EntryStatus } from "@/generated/prisma/enums";
 
 const eventTypeLabel: Record<string, string> = {
   ENTRY_CREATED: "创建",
@@ -78,6 +79,7 @@ export default async function EntryAuditPage({
       type: true,
       amountCents: true,
       status: true,
+      rejectedReason: true,
       occurredAt: true,
       createdAt: true,
       project: { select: { name: true } },
@@ -133,6 +135,17 @@ export default async function EntryAuditPage({
           ) : null}
         </div>
       </div>
+
+      {entry.status === EntryStatus.REJECTED ? (
+        <Card className="border-red-200 bg-red-50 text-red-950 ring-red-200">
+          <CardHeader>
+            <CardTitle>已驳回 · 原因：{entry.rejectedReason || "未填写"}</CardTitle>
+            <CardDescription className="text-red-800">
+              这条流水未计入项目盈亏，请按原因修正后重新提交。
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

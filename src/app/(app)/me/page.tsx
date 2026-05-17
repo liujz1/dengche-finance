@@ -271,11 +271,13 @@ export default async function MePage() {
       },
       select: {
         id: true,
+        projectId: true,
         type: true,
         amountCents: true,
         description: true,
         occurredAt: true,
         status: true,
+        rejectedReason: true,
         project: {
           select: {
             name: true,
@@ -487,22 +489,41 @@ export default async function MePage() {
               <TableBody>
                 {myEntries.map((entry) => {
                   const amount = signedDisplayAmountCents(entry);
+                  const detailHref = `/projects/${entry.projectId}/${entry.id}`;
 
                   return (
-                    <TableRow key={entry.id}>
+                    <TableRow key={entry.id} className="group cursor-pointer">
                       <TableCell className="text-muted-foreground">
-                        {formatDate(entry.occurredAt)}
+                        <Link
+                          href={detailHref}
+                          className="block rounded-sm underline-offset-4 group-hover:underline"
+                        >
+                          {formatDate(entry.occurredAt)}
+                        </Link>
                       </TableCell>
                       <TableCell className="font-medium">
-                        {entry.project.name}
+                        <Link
+                          href={detailHref}
+                          className="block rounded-sm underline-offset-4 group-hover:underline"
+                        >
+                          <span>{entry.project.name}</span>
+                          <span className="mt-1 block max-w-72 truncate text-xs font-normal text-muted-foreground">
+                            {entry.description}
+                          </span>
+                        </Link>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={cn("ring-1", typeBadgeClass[entry.type])}
+                        <Link
+                          href={detailHref}
+                          className="block rounded-sm underline-offset-4 group-hover:underline"
                         >
-                          {entryTypeLabel(entry.type)}
-                        </Badge>
+                          <Badge
+                            variant="outline"
+                            className={cn("ring-1", typeBadgeClass[entry.type])}
+                          >
+                            {entryTypeLabel(entry.type)}
+                          </Badge>
+                        </Link>
                       </TableCell>
                       <TableCell
                         className={cn(
@@ -511,15 +532,30 @@ export default async function MePage() {
                           amount < 0 && "text-red-700"
                         )}
                       >
-                        {formatYuan(amount)}
+                        <Link
+                          href={detailHref}
+                          className="block rounded-sm underline-offset-4 group-hover:underline"
+                        >
+                          {formatYuan(amount)}
+                        </Link>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={cn("ring-1", statusBadgeClass[entry.status])}
+                        <Link
+                          href={detailHref}
+                          className="block rounded-sm underline-offset-4 group-hover:underline"
                         >
-                          {statusLabel(entry.status)}
-                        </Badge>
+                          <Badge
+                            variant="outline"
+                            className={cn("ring-1", statusBadgeClass[entry.status])}
+                          >
+                            {statusLabel(entry.status)}
+                          </Badge>
+                          {entry.status === EntryStatus.REJECTED ? (
+                            <span className="mt-1 block max-w-80 whitespace-normal text-xs leading-5 text-red-700">
+                              驳回原因：{entry.rejectedReason || "未填写"}
+                            </span>
+                          ) : null}
+                        </Link>
                       </TableCell>
                     </TableRow>
                   );
