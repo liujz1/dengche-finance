@@ -359,6 +359,16 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
   **约束**: 不碰 prisma schema(`rejectedReason` 字段已存在) / 不碰 server 写逻辑 / 不装新依赖 / 不 push。
   **验收**: 合伙人 /me 能看到被驳回流水的原因; 能从 /me 点进流水详情; 详情页 REJECTED 流水有明显驳回原因提示; e2e 补一条「合伙人看到驳回原因」用例; 全套 e2e 全绿; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
 
+- [ ] **T-311 凭证图片在用户浏览器里显示为破图** [P0·老板实测·信任三锚]
+  **背景**: 老板生产实测——流水弹窗里的凭证图持续显示破图, 刷新无效。dengche 已多角度排查确认**服务端健康**: 图片文件在服务器 `/opt/ledger/uploads/evidences/` 完好且是有效 JPEG/PNG; 取图接口 `/api/evidence/[key]` 在 Chromium + WebKit 两种引擎、`request.get` + 真实 `<img>` 多种方式实测都稳定返回 200 + 正确字节 + 正确 Content-Type。dengche 在测试环境无法复现 → 问题出在用户浏览器端(缓存/扩展/旧失败态)或某种未覆盖环境。强制证据是信任三锚第 2 条, 凭证看不了 = 红线问题, 必须做到任何浏览器都稳。
+  **目标**: 凭证图在任何用户浏览器都稳定显示; 万一失败有兜底; e2e 真正验证渲染(不再像现在这样把凭证 404 过滤掉)。
+  **改哪 + 怎么改**:
+  1. `src/app/api/evidence/[key]/route.ts`: 把"`Readable.toWeb(createReadStream)` 流式 + 手动设 `Content-Length`"改成"`readFile` 读进 Buffer, `new Response(buffer, {headers})` 一次性返回, **不手动设 Content-Length**(让运行时算)。流式+手动长度是这条链路唯一脆弱点, 图片 ≤5MB 直接 buffer 完全够。
+  2. 凭证 URL 防缓存: `src/lib/evidence-url.ts`(及 entry-row.tsx / approval-dialog.tsx 内联的同名函数)在 `/api/evidence/<key>` 后加版本号 query(如 `?v=<evidence.id>`), 让浏览器旧的失败缓存不会粘住。
+  3. `<img>` 兜底: entry-row.tsx + approval-dialog.tsx 的凭证 `<img>` 加 `onError` 处理——加载失败显示"凭证加载失败 · 点击重试"可点重试, 不要裸破图。
+  **约束**: 不碰 prisma schema / 不装新依赖 / 不 push。
+  **验收**: codex 必须用 Playwright **Chromium + WebKit 两种引擎**真实加载凭证图、断言 `naturalWidth>0`; e2e 补一条"凭证图能渲染"用例并**取消现有对凭证 404 的过滤**(`entry-create.spec.ts` 那行注释"无 R2 credentials 自然 fail"是错的, 本项目是本地磁盘存储不是 R2); 全套 e2e 全绿; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
+
 ---
 
 ## Codex 工作约束 (必读 - v2.1)
