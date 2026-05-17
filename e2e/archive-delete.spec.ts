@@ -6,6 +6,8 @@ const PARTNER_A = { email: "partner-a@dengche.local", password: "partnera123" };
 const IMAGE2_ID = "seed_project_image2";
 const WINDSURF_ID = "seed_project_windsurf";
 const DELETE_ENTRY_ID = "seed_entry_image2_adobe_expense";
+const WINDSURF_PENDING_ID = "seed_entry_windsurf_pending_review";
+const WINDSURF_EXPENSE_ID = "seed_entry_windsurf_account_expense";
 
 function databasePath() {
   const databaseUrl = process.env.DATABASE_URL ?? "file:./dev.db";
@@ -75,6 +77,51 @@ function resetSeedState() {
       }),
       "seed_user_owner",
       `${DELETE_ENTRY_ID}_approved`
+    );
+    // 恢复 windsurf 待审流水——"行内删除"测试会删它, 不恢复则双引擎跑时
+    // 第二个引擎找不到这条流水。
+    db.prepare("DELETE FROM Evidence WHERE entryId = ?").run(WINDSURF_PENDING_ID);
+    db.prepare("UPDATE LedgerEvent SET entryId = NULL WHERE entryId = ?").run(
+      WINDSURF_PENDING_ID
+    );
+    db.prepare("DELETE FROM Entry WHERE id = ?").run(WINDSURF_PENDING_ID);
+    db.prepare(
+      "INSERT INTO Entry (id, projectId, type, amountCents, description, occurredAt, status, createdById, approvedById, approvedAt, rejectedReason, reversedFromId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, ?)"
+    ).run(
+      WINDSURF_PENDING_ID,
+      WINDSURF_ID,
+      "EXPENSE",
+      8_800,
+      "服务器续费 ¥88 待审",
+      occurredAt,
+      "PENDING",
+      "seed_user_partner_a",
+      now
+    );
+    // 恢复 windsurf 已审核流水 + 清掉上一轮"删除冲销配对"测试产生的冲销条。
+    // 先删冲销条(它的 reversedFromId 指向原始条, 否则删原始条会撞外键)。
+    db.prepare("DELETE FROM Entry WHERE description LIKE ?").run(
+      "[冲销] windsurf 号采购%"
+    );
+    db.prepare("DELETE FROM Evidence WHERE entryId = ?").run(WINDSURF_EXPENSE_ID);
+    db.prepare("UPDATE LedgerEvent SET entryId = NULL WHERE entryId = ?").run(
+      WINDSURF_EXPENSE_ID
+    );
+    db.prepare("DELETE FROM Entry WHERE id = ?").run(WINDSURF_EXPENSE_ID);
+    db.prepare(
+      "INSERT INTO Entry (id, projectId, type, amountCents, description, occurredAt, status, createdById, approvedById, approvedAt, rejectedReason, reversedFromId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?)"
+    ).run(
+      WINDSURF_EXPENSE_ID,
+      WINDSURF_ID,
+      "EXPENSE",
+      29_900,
+      "windsurf 号采购 ¥299",
+      occurredAt,
+      "APPROVED",
+      "seed_user_owner",
+      "seed_user_owner",
+      now,
+      occurredAt
     );
   })();
 
@@ -243,9 +290,11 @@ test.describe.serial("T-303 项目归档 + 流水删除", () => {
       .filter({ hasText: "[冲销] windsurf 号采购 ¥299" });
     await expect(reversalRow).toHaveCount(1);
 
-    // 删除冲销条 —— 应把整对（原始条 + 冲销条）一起删
+    // 删除冲销条 —— 应把整对（原始条 + 冲销条）一起删。
+    // 用唯一原因，避免 Chromium + WebKit 双引擎跑时事件计数互相累加。
+    const pairReason = `e2e配对删除-${Date.now()}`;
     await reversalRow.getByRole("button", { name: /删除流水/ }).click();
-    await page.locator('textarea[name="reason"]').fill("e2e配对删除");
+    await page.locator('textarea[name="reason"]').fill(pairReason);
     await page.getByRole("button", { name: "确认删除" }).click();
 
     // 删完重定向回本项目页（URL 不变），UI 信号不可靠——直接轮询 DB，
@@ -275,7 +324,7 @@ test.describe.serial("T-303 项目归档 + 流水删除", () => {
       .prepare(
         "SELECT COUNT(*) AS n FROM LedgerEvent WHERE eventType = 'ENTRY_DELETED' AND payloadJson LIKE ?"
       )
-      .get("%e2e配对删除%") as { n: number };
+      .get(`%${pairReason}%`) as { n: number };
     db.close();
     expect(deletedEvents.n).toBe(2);
   });

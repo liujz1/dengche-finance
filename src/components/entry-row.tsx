@@ -5,6 +5,8 @@ import { useFormStatus } from "react-dom";
 import { ImageIcon, PaperclipIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { DeleteEntryDialog } from "@/components/delete-entry-dialog";
+import { EvidenceImage } from "@/components/evidence-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +27,6 @@ import { getEvidencePublicUrl } from "@/lib/evidence-url";
 import { entryTypeLabel, formatDate, formatYuan } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { reverseEntryAction, type ReverseEntryState } from "@/server/entries";
-import { DeleteEntryDialog } from "@/components/delete-entry-dialog";
 
 type EntryRowEvidence = {
   id: string;
@@ -76,12 +77,12 @@ function statusLabel(status: EntryStatus) {
   }
 }
 
-function evidenceUrl(r2Key: string) {
+function evidenceUrl(r2Key: string, version: string) {
   if (r2Key.startsWith("http://") || r2Key.startsWith("https://")) {
     return r2Key;
   }
 
-  return getEvidencePublicUrl(r2Key);
+  return getEvidencePublicUrl(r2Key, version);
 }
 
 function formatFileSize(bytes: number) {
@@ -312,7 +313,7 @@ export function EntryRow({
         {entry.evidences.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2">
             {entry.evidences.map((evidence) => {
-              const url = evidenceUrl(evidence.r2Key);
+              const url = evidenceUrl(evidence.r2Key, evidence.id);
               const isImage = evidence.mimeType.startsWith("image/");
 
               return (
@@ -321,8 +322,7 @@ export function EntryRow({
                   className="overflow-hidden rounded-lg border bg-muted/20"
                 >
                   {url && isImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <EvidenceImage
                       src={url}
                       alt="流水凭证"
                       className="max-h-[420px] w-full object-contain"

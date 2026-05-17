@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { toast } from "sonner";
 
+import { EvidenceImage } from "@/components/evidence-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { EntryStatus, EntryType } from "@/generated/prisma/enums";
 import { signedDisplayAmountCents } from "@/lib/amount";
+import { getEvidencePublicUrl } from "@/lib/evidence-url";
 import { entryTypeLabel, formatDate, formatYuan } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -71,8 +73,8 @@ function formatFileSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function evidenceUrl(r2Key: string) {
-  return `/api/evidence/${encodeURIComponent(r2Key)}`;
+function evidenceUrl(r2Key: string, version: string) {
+  return getEvidencePublicUrl(r2Key, version);
 }
 
 function emptyValue(value: string | null) {
@@ -234,27 +236,18 @@ export function ApprovalDialog({ entry }: { entry: ApprovalEntry }) {
               {entry.evidences.length > 0 ? (
                 <div className="grid gap-3 md:grid-cols-2">
                   {entry.evidences.map((evidence) => {
-                    const url = evidenceUrl(evidence.r2Key);
+                    const url = evidenceUrl(evidence.r2Key, evidence.id);
 
                     return (
                       <figure
                         key={evidence.id}
                         className="overflow-hidden rounded-lg border bg-background"
                       >
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noreferrer"
-                          aria-label="在新标签打开凭证原图"
-                          title="打开原图"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={url}
-                            alt="凭证图片"
-                            className="max-h-[480px] w-full cursor-pointer bg-muted object-contain"
-                          />
-                        </a>
+                        <EvidenceImage
+                          src={url}
+                          alt="凭证图片"
+                          className="max-h-[480px] w-full bg-muted object-contain"
+                        />
                         <figcaption className="space-y-1 border-t p-3 text-xs text-muted-foreground">
                           <p className="break-all text-foreground">
                             {evidence.r2Key}
@@ -263,6 +256,14 @@ export function ApprovalDialog({ entry }: { entry: ApprovalEntry }) {
                             {evidence.mimeType} ·{" "}
                             {formatFileSize(evidence.sizeBytes)}
                           </p>
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary underline underline-offset-4"
+                          >
+                            打开原图
+                          </a>
                         </figcaption>
                       </figure>
                     );

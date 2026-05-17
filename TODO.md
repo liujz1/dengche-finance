@@ -359,7 +359,8 @@ S2_ALL_DONE = true (2026-05-15 完成) — 16 个 task 全 [x] (T-200~215)。重
   **约束**: 不碰 prisma schema(`rejectedReason` 字段已存在) / 不碰 server 写逻辑 / 不装新依赖 / 不 push。
   **验收**: 合伙人 /me 能看到被驳回流水的原因; 能从 /me 点进流水详情; 详情页 REJECTED 流水有明显驳回原因提示; e2e 补一条「合伙人看到驳回原因」用例; 全套 e2e 全绿; `npx tsc --noEmit` + `pnpm exec next build --webpack` 绿。
 
-- [!] **T-311 凭证图片在用户浏览器里显示为破图** [P0·老板实测·信任三锚]
+- [x] **T-311 凭证图片在用户浏览器里显示为破图** [P0·老板实测·信任三锚] — 2026-05-16 完成
+  **dengche 验收**: 取图接口改 buffer 返回(去掉流式+手动 Content-Length)、凭证 URL 加 `?v=` 防缓存、`<img>` 加失败重试兜底、playwright 加 WebKit 引擎。全套 50 e2e（Chromium + WebKit 双引擎）全绿，含新增「T-311 凭证图能真实渲染」用例两引擎都过；tsc + build 绿。附带修了加 WebKit 后暴露的 3 处 archive-delete 测试隔离 bug（windsurf 待审/已审流水未恢复、配对删除事件计数累加）。
   **背景**: 老板生产实测——流水弹窗里的凭证图持续显示破图, 刷新无效。dengche 已多角度排查确认**服务端健康**: 图片文件在服务器 `/opt/ledger/uploads/evidences/` 完好且是有效 JPEG/PNG; 取图接口 `/api/evidence/[key]` 在 Chromium + WebKit 两种引擎、`request.get` + 真实 `<img>` 多种方式实测都稳定返回 200 + 正确字节 + 正确 Content-Type。dengche 在测试环境无法复现 → 问题出在用户浏览器端(缓存/扩展/旧失败态)或某种未覆盖环境。强制证据是信任三锚第 2 条, 凭证看不了 = 红线问题, 必须做到任何浏览器都稳。
   **目标**: 凭证图在任何用户浏览器都稳定显示; 万一失败有兜底; e2e 真正验证渲染(不再像现在这样把凭证 404 过滤掉)。
   **改哪 + 怎么改**:

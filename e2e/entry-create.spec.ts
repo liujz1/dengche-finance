@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 const PARTNER_A = { email: "partner-a@dengche.local", password: "partnera123" };
 
@@ -10,7 +10,7 @@ const TINY_PNG_BUFFER = Buffer.from(
   "hex",
 );
 
-async function loginAsPartnerA(page: any) {
+async function loginAsPartnerA(page: Page) {
   await page.goto("/login");
   await page.getByLabel(/邮箱|email/i).fill(PARTNER_A.email);
   await page.getByLabel(/密码|password/i).fill(PARTNER_A.password);
@@ -69,9 +69,7 @@ test("T-002: partner-a 录入新流水 e2e", async ({ page }) => {
   await page.waitForURL(/\/(projects|entries)/, { timeout: 15_000 });
   await expect(page).not.toHaveURL(/\/entries\/new$/);
 
-  // 过滤 dev 环境已知 404 (无 R2 credentials, evidence image fetch 自然 fail) - 非业务 bug
-  const realErrors = consoleErrors.filter((e) => !e.includes("404") && !e.includes("Not Found"));
-  expect(realErrors, `客户端报错:\n${realErrors.join("\n")}`).toEqual([]);
+  expect(consoleErrors, `客户端报错:\n${consoleErrors.join("\n")}`).toEqual([]);
 });
 
 
@@ -119,4 +117,36 @@ test("T-305: partner-a 一次录入多张凭证", async ({ page }) => {
     .get(desc) as { n: number };
   db.close();
   expect(row.n).toBe(3);
+});
+
+test("T-311: 凭证图能在浏览器里真实渲染", async ({ page }) => {
+  await loginAsPartnerA(page);
+  await page.goto("/entries/new");
+  await expect(page).toHaveURL(/\/entries\/new/);
+
+  await page.getByRole("combobox").first().click();
+  await page.getByRole("option", { name: /image2/i }).click();
+  await page.getByRole("combobox").nth(1).click();
+  await page.getByRole("option", { name: /支出/ }).click();
+  await page.getByLabel(/^金额/).fill("31.10");
+
+  const desc = `T-311 凭证渲染 ${Date.now()}`;
+  await page.getByLabel(/描述/).fill(desc);
+  await page.locator("input#occurredAt").fill(new Date().toISOString().slice(0, 10));
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "t-311-evidence.png",
+    mimeType: "image/png",
+    buffer: TINY_PNG_BUFFER,
+  });
+
+  await page.getByRole("button", { name: "提交审核" }).click();
+  await page.waitForURL(/\/projects\//, { timeout: 15_000 });
+
+  await page.getByRole("button", { name: desc }).click();
+  const image = page.getByRole("img", { name: "流水凭证" }).first();
+  await expect(image).toBeVisible();
+
+  await expect
+    .poll(async () => image.evaluate((img) => (img as HTMLImageElement).naturalWidth))
+    .toBeGreaterThan(0);
 });

@@ -1,7 +1,5 @@
-import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { Readable } from "node:stream";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
@@ -79,7 +77,6 @@ export async function GET(_request: Request, { params }: EvidenceRouteContext) {
     },
     select: {
       mimeType: true,
-      sizeBytes: true,
     },
   });
 
@@ -88,19 +85,19 @@ export async function GET(_request: Request, { params }: EvidenceRouteContext) {
   }
 
   const filePath = path.join(process.cwd(), "uploads", "evidences", safeKey.filename);
+  let fileBuffer: Buffer;
 
   try {
-    await stat(filePath);
+    fileBuffer = await readFile(filePath);
   } catch {
     return notFound();
   }
 
-  const stream = Readable.toWeb(createReadStream(filePath)) as ReadableStream;
+  const responseBody = Uint8Array.from(fileBuffer).buffer;
 
-  return new Response(stream, {
+  return new Response(responseBody, {
     headers: {
       "Content-Type": evidence.mimeType,
-      "Content-Length": String(evidence.sizeBytes),
       "Cache-Control": "private, max-age=0, must-revalidate",
     },
   });
