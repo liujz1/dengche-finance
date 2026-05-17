@@ -8,6 +8,7 @@ import {
   type DragEvent,
   useActionState,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useTransition,
@@ -164,6 +165,14 @@ export function NewEntryForm({
   );
   const [isDraggingEvidence, setIsDraggingEvidence] = useState(false);
   const [evidenceError, setEvidenceError] = useState<string | null>(null);
+  const projectSelectItems = useMemo(
+    () =>
+      projects.map((project) => ({
+        value: project.id,
+        label: project.name,
+      })),
+    [projects]
+  );
   const safeDefaultProjectId = projects.some(
     (project) => project.id === defaultProjectId
   )
@@ -337,6 +346,7 @@ export function NewEntryForm({
             <Label htmlFor="projectId">项目</Label>
             <Select
               name="projectId"
+              items={projectSelectItems}
               value={selectedProjectId}
               onValueChange={(value) => {
                 setValue("projectId", value ?? "", {
@@ -373,6 +383,7 @@ export function NewEntryForm({
             <Label htmlFor="type">类型</Label>
             <Select
               name="type"
+              items={entryTypeOptions}
               value={selectedType}
               onValueChange={(value) => {
                 setValue("type", value as EntryFormValues["type"], {
