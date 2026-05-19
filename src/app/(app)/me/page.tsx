@@ -332,6 +332,9 @@ export default async function MePage() {
   );
   const totalReceivedCents = 0;
   const pendingSettlementCents = totalEarnedCents - totalReceivedCents;
+  const rejectedEntryCount = myEntries.filter(
+    (entry) => entry.status === EntryStatus.REJECTED
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -341,6 +344,12 @@ export default async function MePage() {
           看自己参与项目的累计应得、待结算金额和增长曲线。
         </p>
       </div>
+
+      {rejectedEntryCount > 0 ? (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          你有 {rejectedEntryCount} 笔流水被驳回，见下方历史流水，请按驳回原因修正后重新提交。
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

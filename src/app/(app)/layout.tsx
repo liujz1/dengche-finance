@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
+import { EntryStatus } from "@/generated/prisma/enums";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,15 +39,30 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { name: true, role: true },
-  });
-  const displayName = dbUser?.name ?? session.user.name ?? null;
   const isOwner = session.user.role === "OWNER";
+  const [dbUser, rejectedEntryCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { name: true, role: true },
+    }),
+    isOwner
+      ? Promise.resolve(0)
+      : prisma.entry.count({
+          where: {
+            createdById: session.user.id,
+            status: EntryStatus.REJECTED,
+          },
+        }),
+  ]);
+  const displayName = dbUser?.name ?? session.user.name ?? null;
   const navItems = [
     { href: "/projects", label: "项目", visible: true },
-    { href: "/me", label: "我的回报", visible: true },
+    {
+      href: "/me",
+      label: "我的回报",
+      visible: true,
+      rejectedEntryCount,
+    },
     { href: "/approvals", label: "审核", visible: isOwner },
     { href: "/allocations", label: "分配", visible: isOwner },
     { href: "/admin/users", label: "用户", visible: isOwner },
@@ -72,10 +88,20 @@ export default async function AppLayout({
                   href={item.href}
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "sm" }),
-                    "text-muted-foreground hover:text-foreground"
+                    "gap-1.5 text-muted-foreground hover:text-foreground"
                   )}
+                  aria-label={
+                    item.rejectedEntryCount
+                      ? `${item.label}，${item.rejectedEntryCount} 笔被驳回流水`
+                      : item.label
+                  }
                 >
-                  {item.label}
+                  <span>{item.label}</span>
+                  {item.rejectedEntryCount ? (
+                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-semibold leading-5 text-white tabular-nums">
+                      {item.rejectedEntryCount}
+                    </span>
+                  ) : null}
                 </Link>
               ))}
           </nav>
@@ -112,7 +138,14 @@ export default async function AppLayout({
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem render={<Link href="/me" />}>
-                我的回报
+                <span className="flex w-full items-center justify-between gap-2">
+                  <span>我的回报</span>
+                  {rejectedEntryCount ? (
+                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-semibold leading-5 text-white tabular-nums">
+                      {rejectedEntryCount}
+                    </span>
+                  ) : null}
+                </span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem render={<div />}>
