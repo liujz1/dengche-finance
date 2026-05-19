@@ -332,9 +332,11 @@ export default async function MePage() {
   );
   const totalReceivedCents = 0;
   const pendingSettlementCents = totalEarnedCents - totalReceivedCents;
-  const rejectedEntryCount = myEntries.filter(
-    (entry) => entry.status === EntryStatus.REJECTED
-  ).length;
+  // 驳回提醒是合伙人专属——OWNER 不显示（与导航徽章的角色门一致）
+  const rejectedEntryCount =
+    session.user.role === "OWNER"
+      ? 0
+      : myEntries.filter((entry) => entry.status === EntryStatus.REJECTED).length;
 
   return (
     <div className="space-y-6">

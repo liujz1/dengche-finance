@@ -196,7 +196,10 @@ test.describe.serial("T-310 合伙人看到驳回原因", () => {
     await page.goto("/me");
 
     await expect(page.getByText("T-310 驳回原因可见性测试")).toBeVisible();
-    await expect(page.getByText(`驳回原因：${REJECTED_REASON}`)).toBeVisible();
+    // 两条被驳回流水共用同一 REJECTED_REASON，会匹配多个元素，取首个即可
+    await expect(
+      page.getByText(`驳回原因：${REJECTED_REASON}`).first()
+    ).toBeVisible();
 
     await page.getByText("T-310 驳回原因可见性测试").click();
     await page.waitForURL(new RegExp(`/projects/${PROJECT_ID}/${REJECTED_ENTRY_IDS[0]}`));
